@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Pemesanan Sederhana</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4 text-gray-900 dark:text-gray-100">
+
+    <!-- Main Application Container -->
+    <div id="app-container" class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-lg">
+        <!-- The UI will be dynamically rendered here by JavaScript -->
+        <div id="ui-content" class="min-h-[400px]">
+            <p class="text-center text-gray-500 dark:text-gray-400">Memuat antarmuka pengguna...</p>
+        </div>
+    </div>
+
+    <!-- Modal Konfirmasi Pesanan (hidden by default) -->
+    <div id="order-success-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm mx-4 text-center">
+            <h2 class="text-2xl font-bold mb-4 text-green-600">Pesanan Berhasil!</h2>
+            <p class="mb-6">Pesanan Anda telah berhasil dibuat. Silakan cek riwayat pesanan Anda.</p>
+            <button id="close-order-success-modal" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Login Admin (hidden by default) -->
+    <div id="admin-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm mx-4">
+            <h2 class="text-2xl font-bold text-center mb-4">Masuk sebagai Admin</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="admin-id-input" class="block text-sm font-medium mb-1">ID Admin:</label>
+                    <input type="text" id="admin-id-input" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" placeholder="Admin" />
+                </div>
+                <div>
+                    <label for="admin-code-input" class="block text-sm font-medium mb-1">Kode Admin:</label>
+                    <input type="password" id="admin-code-input" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" placeholder="****" />
+                </div>
+                <div id="login-message" class="text-sm text-center"></div>
+                <button id="login-submit-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
+                    Masuk
+                </button>
+                <button id="close-admin-modal" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-md transition-colors duration-200">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal User Orders (hidden by default) -->
+    <div id="user-orders-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">Riwayat Pesanan Anda</h2>
+                <button id="show-payment-info" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
+                    Cara Bayar
+                </button>
+            </div>
+            <div id="user-orders-list" class="space-y-4 mb-4">
+                <p class="text-center text-gray-500 dark:text-gray-400">Memuat riwayat pesanan...</p>
+            </div>
+            <button id="close-user-orders-modal" class="w-full bg-neutral-800 hover:bg-neutral-900 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Payment Info (new) -->
+    <div id="payment-info-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm mx-4 max-h-[80vh] overflow-y-auto">
+            <h2 class="text-2xl font-bold text-center mb-4">Informasi Pembayaran</h2>
+            <div class="space-y-6">
+                <!-- Tab Tunai -->
+                <div id="payment-tunai-info">
+                    <h3 class="text-xl font-bold mb-2">Tunai</h3>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Pembayaran dilakukan secara tunai saat pesanan diterima.</p>
+                </div>
+                <!-- Tab Transfer -->
+                <div id="payment-transfer-info">
+                    <h3 class="text-xl font-bold mb-2">Transfer</h3>
+                    <p class="text-sm">Bank: Bank Syariah Indonesia (BSI)</p>
+                    <p class="text-sm">No.Rek: 7292519928</p>
+                    <p class="text-sm">a.n: Irianti Mega</p>
+                </div>
+                <!-- Tab QRIS -->
+                <div id="payment-qris-info">
+                    <h3 class="text-xl font-bold mb-2">QRIS</h3>
+                    <p class="mb-2">Scan untuk Bayar</p>
+                    <!-- Updated QRIS Image -->
+                    <img id="qris-image" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCasssXDfDwY5JY1YgVuuHIoSk0Xl0PPy5xdfl3cFsRnYC0euhgylGONrXhl2L653RI3IKl5faxwfovcpXqi7hwSOOiytvZO7-rwtKvBOuB1BG0AIVEqatnKRPjJ5vbJHIkRM76OHj4FpKhSvG-XMAXVhnWRuQFk8m0GU0WDmE7g531Ge5MzyldTxjdIs/s375/Qris%20Masakin.jpg" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-xs text-center text-gray-600 dark:text-gray-400 mt-2">Gambar QRIS tidak dapat dimuat.</div>
+                </div>
+            </div>
+            <button id="close-payment-info-modal" class="w-full mt-6 bg-neutral-800 hover:bg-neutral-900 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Status feedback message (new) -->
+    <div id="status-message" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg hidden">
+        Harga berhasil disimpan!
+    </div>
+    
+    <script type="module">
+        // Import Firebase libraries
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, doc, where, getDoc, setDoc, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the Canvas environment
+        const appId = 'default-app-id'; // This ID is used for the database path and should be a unique identifier for your app
+
+        // =======================================================================================
+        // PASTE KONFIGURASI FIREBASE ANDA DI SINI
+        // PENTING: Ganti objek 'firebaseConfig' di bawah ini dengan konfigurasi pribadi Anda
+        // dari konsol Firebase. Ini adalah penyebab error yang Anda alami.
+        // =======================================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDO6OaqmYpAWfOmtsRg_g1yC_WO2J2gXOI",
+  authDomain: "test-project-dc4c4.firebaseapp.com",
+  projectId: "test-project-dc4c4",
+  storageBucket: "test-project-dc4c4.firebasestorage.app",
+  messagingSenderId: "42493897694",
+  appId: "1:42493897694:web:a29260c37485c02ccb8b4f",
+  measurementId: "G-3BDGHJR2LT"
+};
+        // =======================================================================================
+        
+        const initialAuthToken = null; // Ini hanya digunakan untuk lingkungan khusus
+
+        // Hardcoded admin credentials for demonstration
+        const ADMIN_ID = 'Admin';
+        const ADMIN_CODE = '4567';
+
+        // Get DOM elements
+        const uiContent = document.getElementById('ui-content');
+        const adminModal = document.getElementById('admin-modal');
+        const adminIdInput = document.getElementById('admin-id-input');
+        const adminCodeInput = document.getElementById('admin-code-input');
+        const loginSubmitButton = document.getElementById('login-submit-button');
+        const loginMessage = document.getElementById('login-message');
+        const closeAdminModalButton = document.getElementById('close-admin-modal');
+        const userOrdersModal = document.getElementById('user-orders-modal');
+        const closeUserOrdersModalButton = document.getElementById('close-user-orders-modal');
+        // FIX: Mendefinisikan closeOrderSuccessModalButton sebagai elemen DOM
+        const orderSuccessModal = document.getElementById('order-success-modal');
+        const closeOrderSuccessModalButton = document.getElementById('close-order-success-modal');
+        
+        const paymentInfoModal = document.getElementById('payment-info-modal');
+        const closePaymentInfoModalButton = document.getElementById('close-payment-info-modal');
+        const showPaymentInfoButton = document.getElementById('show-payment-info');
+        const statusMessage = document.getElementById('status-message');
+
+        let app, db, auth;
+        let userId = null;
+        let isAdminMode = false;
+        let activeAdminTab = 'orders'; // 'orders' or 'recap'
+        let cart = {};
+        let storeSettings = {};
+        
+        // Helper function to convert price string (e.g., "10k" or "27.5k") to number
+        const parsePrice = (priceStr) => {
+            const str = priceStr.toLowerCase().replace('k', '');
+            if (str.includes('.')) {
+                return parseFloat(str) * 1000;
+            }
+            return parseInt(str) * 1000;
+        };
+
+        // =======================================================================================
+        // DATA PRODUK BARU DARI DAFTAR YANG ANDA BERIKAN
+        // =======================================================================================
+        let products = [
+            // --- Pin Kopi ---
+            { id: 'p1', name: 'Cold Brew Pin Kopi', price: parsePrice('8k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
+            { id: 'p2', name: 'Kopi Lemon', price: parsePrice('10k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
+            { id: 'p3', name: 'Pin Kopi Signatur', price: parsePrice('10k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
+            { id: 'p4', name: 'Kopi Caramel Machiato', price: parsePrice('12k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
+            { id: 'p5', name: 'Kopi Butterscotch', price: parsePrice('12k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
+            { id: 'p6', name: 'Kopi Vanila Latte', price: parsePrice('12k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
+            { id: 'p7', name: 'Thai Tea', price: parsePrice('10k'), description: 'Vendor: Pin Kopi', hasCoffee: false },
+            { id: 'p8', name: 'Green Tea', price: parsePrice('10k'), description: 'Vendor: Pin Kopi', hasCoffee: false },
+            
+            // --- SatSet Grill ---
+            { id: 'p9', name: 'Steik Ayam Kentang BBQ', price: parsePrice('20k'), description: 'Vendor: SatSet Grill', hasCoffee: false },
+            { id: 'p10', name: 'Steik Ayam Kentang Blackpepper', price: parsePrice('20k'), description: 'Vendor: SatSet Grill', hasCoffee: false },
+            { id: 'p11', name: 'Sosis', price: parsePrice('10k'), description: 'Vendor: SatSet Grill', hasCoffee: false },
+            { id: 'p12', name: 'Spaghetti Bolognese', price: parsePrice('15k'), description: 'Vendor: SatSet Grill', hasCoffee: false },
+            
+            // --- Ani KSF ---
+            { id: 'p13', name: 'Dosuke KFS Ori 6pc', price: parsePrice('18k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+            { id: 'p14', name: 'Dosuke KFS Ori 3pc', price: parsePrice('10k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+            { id: 'p15', name: 'Dosuke Topping Glaze 6pc', price: parsePrice('25k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+            { id: 'p16', name: 'Dosuke Topping Glaze 3pc', price: parsePrice('13k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+            { id: 'p17', name: 'Dosuke Topping Jadul (Doble Coklat Meses Dan Sweet Cheese) 6pc', price: parsePrice('30k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+            { id: 'p18', name: 'Dosuke Topping Jadul (Doble Coklat Meses Dan Sweet Cheese) 3pc', price: parsePrice('16k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+            { id: 'p19', name: 'Bomboloni KFS Filling Homemade 4pc', price: parsePrice('25k'), description: 'Vendor: Ani KSF (Filling: Susu, Coklat, Keju, Klappertaart, Greentea, Coffe)', hasCoffee: false },
+            { id: 'p20', name: 'Nasi Bakar Ayam Ori', price: parsePrice('10k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+            { id: 'p21', name: 'Nasi Bakar Ayam Pedas', price: parsePrice('10k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+            { id: 'p22', name: 'Nasi Bakar Cumi', price: parsePrice('15k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+            { id: 'p23', name: 'Es Telang Lemon', price: parsePrice('7k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+            { id: 'p24', name: 'Buko Pandan 300ml', price: parsePrice('18k'), description: 'Vendor: Ani KSF', hasCoffee: false },
+
+            // --- Melisa ---
+            { id: 'p25', name: 'Chiffon De Bandung Original', price: parsePrice('35k'), description: 'Vendor: Melisa', hasCoffee: false },
+            { id: 'p26', name: 'Chiffon De Bandung Doble Cheese', price: parsePrice('45k'), description: 'Vendor: Melisa', hasCoffee: false },
+            { id: 'p27', name: 'Chiffon De Bandung Extra Cheese', price: parsePrice('45k'), description: 'Vendor: Melisa', hasCoffee: false },
+            { id: 'p28', name: 'Chiffon De Bandung Super Cheese', price: parsePrice('55k'), description: 'Vendor: Melisa', hasCoffee: false },
+            
+            // --- Gia ---
+            { id: 'p29', name: 'Dimsum Mix Besar 8pc', price: parsePrice('27.5k'), description: 'Vendor: Gia', hasCoffee: false },
+            { id: 'p30', name: 'Dimsum Mentai 6pc', price: parsePrice('34.5k'), description: 'Vendor: Gia', hasCoffee: false },
+            
+            // --- Umi Saladin ---
+            { id: 'p31', name: 'Salad Buah', price: parsePrice('21k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
+            { id: 'p32', name: 'Sago Mango', price: parsePrice('12k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
+            { id: 'p33', name: 'Jus Pressed Cold Sun Series', price: parsePrice('15k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
+            { id: 'p34', name: 'Jus Pressed Cold Red Series', price: parsePrice('15k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
+            { id: 'p35', name: 'Jus Pressed Cold Tropical Series', price: parsePrice('15k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
+            { id: 'p36', name: 'Jus Pressed Cold Purple Series', price: parsePrice('15k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
+            { id: 'p37', name: 'Jus Pressed Cold Green Series', price: parsePrice('15k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
+            
+            // --- Yulia ---
+            { id: 'p38', name: 'Klappertaart', price: parsePrice('20k'), description: 'Vendor: Yulia', hasCoffee: false },
+            { id: 'p39', name: 'Mini Soes Vanilla', price: parsePrice('35k'), description: 'Vendor: Yulia', hasCoffee: false },
+            { id: 'p40', name: 'Mini Soes Coklat', price: parsePrice('40k'), description: 'Vendor: Yulia', hasCoffee: false },
+            { id: 'p41', name: 'Mini Soes Cream Cheese', price: parsePrice('40k'), description: 'Vendor: Yulia', hasCoffee: false },
+            { id: 'p42', name: 'Brownies JBB 20*10', price: parsePrice('60k'), description: 'Vendor: Yulia', hasCoffee: false },
+            { id: 'p43', name: 'Brownies JBB 20*20cm', price: parsePrice('115k'), description: 'Vendor: Yulia', hasCoffee: false },
+            { id: 'p44', name: 'Roti Tawar JBB', price: parsePrice('15k'), description: 'Vendor: Yulia', hasCoffee: false },
+            { id: 'p45', name: 'Hazelnut Coffee', price: parsePrice('21k'), description: 'Vendor: Yulia', hasCoffee: true },
+            { id: 'p46', name: 'Matcha Latte', price: parsePrice('18k'), description: 'Vendor: Yulia', hasCoffee: false },
+            { id: 'p47', name: 'Americano Coffee', price: parsePrice('25k'), description: 'Vendor: Yulia', hasCoffee: true },
+            
+            // --- Nisa ---
+            { id: 'p48', name: 'Lumpia Sale Pisang 250gr', price: parsePrice('20k'), description: 'Vendor: Nisa', hasCoffee: false },
+            { id: 'p49', name: 'Cilok Jadul Bumbu Kacang 6pc', price: parsePrice('7k'), description: 'Vendor: Nisa', hasCoffee: false },
+            { id: 'p50', name: 'Dimsum Keju Goreng 5pc', price: parsePrice('25k'), description: 'Vendor: Nisa', hasCoffee: false },
+            
+            // --- Yasmin ---
+            { id: 'p51', name: 'Roti Cranberry Regular', price: parsePrice('18k'), description: 'Vendor: Yasmin', hasCoffee: false },
+            { id: 'p52', name: 'Roti Double Choco Regular', price: parsePrice('20k'), description: 'Vendor: Yasmin', hasCoffee: false },
+            { id: 'p53', name: 'Roti Pisang Cream Cheese Regular', price: parsePrice('18k'), description: 'Vendor: Yasmin (Harga 8k untuk yang kecil)', hasCoffee: false },
+            { id: 'p54', name: 'Roti Sosis Keju Regular', price: parsePrice('20k'), description: 'Vendor: Yasmin (Harga 10k untuk yang kecil)', hasCoffee: false },
+            { id: 'p55', name: 'Roti Cranberry Mini', price: parsePrice('55k'), description: 'Vendor: Yasmin', hasCoffee: false },
+            { id: 'p56', name: 'Roti Choco Mini', price: parsePrice('60k'), description: 'Vendor: Yasmin', hasCoffee: false },
+            { id: 'p57', name: 'Roti Mix Mini Cranberry Choco', price: parsePrice('65k'), description: 'Vendor: Yasmin', hasCoffee: false },
+            { id: 'p58', name: 'Paket Happiness', price: parsePrice('27k'), description: 'Vendor: Yasmin (Promo)', hasCoffee: false },
+            { id: 'p59', name: 'Risoles Ragout', price: parsePrice('15k'), description: 'Vendor: Yasmin', hasCoffee: false },
+            { id: 'p60', name: 'Risoles Mix Ragout Dan Ayam Pedas', price: parsePrice('15k'), description: 'Vendor: Yasmin', hasCoffee: false },
+            { id: 'p61', name: 'Paket Manis (1 Nong-nong Whippee + 2 Mini Daki)', price: parsePrice('28k'), description: 'Vendor: Yasmin', hasCoffee: false },
+            { id: 'p62', name: 'Paket Seger (1 Nong-nongmanggo + 2 Mini Daiki)', price: parsePrice('26k'), description: 'Vendor: Yasmin', hasCoffee: false },
+            { id: 'p63', name: 'Paket Wangi (1 Nong-nong Jasmine + 2 Mini Daiki)', price: parsePrice('24k'), description: 'Vendor: Yasmin', hasCoffee: false },
+            
+            // --- Mega ---
+            { id: 'p64', name: 'Smoked Chicken Shawarma', price: parsePrice('35k'), description: 'Vendor: Mega', hasCoffee: false },
+            { id: 'p65', name: 'Smoked Beef Shawarma', price: parsePrice('55k'), description: 'Vendor: Mega', hasCoffee: false },
+            { id: 'p66', name: 'Tuna Mayo Shawarma', price: parsePrice('38k'), description: 'Vendor: Mega', hasCoffee: false },
+            { id: 'p67', name: 'Smoked Chicken Sandwich', price: parsePrice('38k'), description: 'Vendor: Mega', hasCoffee: false },
+            { id: 'p68', name: 'Smoked Beef Sandwich', price: parsePrice('58k'), description: 'Vendor: Mega', hasCoffee: false },
+            { id: 'p69', name: 'Tuna Mayo Sandwich', price: parsePrice('40k'), description: 'Vendor: Mega', hasCoffee: false },
+            { id: 'p70', name: 'Ori Smoked Chicken Sandwich', price: parsePrice('35k'), description: 'Vendor: Mega', hasCoffee: false },
+            { id: 'p71', name: 'Ori Smoked Chicken Salad', price: parsePrice('35k'), description: 'Vendor: Mega', hasCoffee: false },
+            { id: 'p72', name: 'BBQ Smoked Chicken Wings', price: parsePrice('40k'), description: 'Vendor: Mega', hasCoffee: false },
+            { id: 'p73', name: 'Karak Chai 1L', price: parsePrice('60k'), description: 'Vendor: Mega', hasCoffee: false },
+            { id: 'p74', name: 'Lemonite', price: parsePrice('10k'), description: 'Vendor: Mega', hasCoffee: false },
+            
+            // --- Linda ---
+            { id: 'p75', name: 'Batagor Ayam', price: parsePrice('10k'), description: 'Vendor: Linda (Pilihan 1)', hasCoffee: false },
+            { id: 'p76', name: 'Batagor Ayam', price: parsePrice('15k'), description: 'Vendor: Linda (Pilihan 2)', hasCoffee: false },
+            { id: 'p77', name: 'Batagor Ayam + Baso Kriwil', price: parsePrice('15k'), description: 'Vendor: Linda', hasCoffee: false },
+            { id: 'p78', name: 'Martabak Coklat', price: parsePrice('10k'), description: 'Vendor: Linda', hasCoffee: false },
+            { id: 'p79', name: 'Martabak Ketan Hitam', price: parsePrice('10k'), description: 'Vendor: Linda', hasCoffee: false },
+            { id: 'p80', name: 'Martabak Kacang', price: parsePrice('10k'), description: 'Vendor: Linda', hasCoffee: false },
+            { id: 'p81', name: 'Martabak Pisang', price: parsePrice('12k'), description: 'Vendor: Linda', hasCoffee: false },
+            { id: 'p82', name: 'Martabak Coklat Kacang', price: parsePrice('13k'), description: 'Vendor: Linda', hasCoffee: false },
+            { id: 'p83', name: 'Martabak Keju', price: parsePrice('17k'), description: 'Vendor: Linda', hasCoffee: false },
+            { id: 'p84', name: 'Martabak Keju Coklat', price: parsePrice('20k'), description: 'Vendor: Linda', hasCoffee: false },
+            { id: 'p85', name: 'Martabak Keju Kacang', price: parsePrice('20k'), description: 'Vendor: Linda', hasCoffee: false },
+            { id: 'p86', name: 'Martabak Keju Pisang', price: parsePrice('21k'), description: 'Vendor: Linda', hasCoffee: false },
+        ];
+        // =======================================================================================
+        
+        // Coffee variants as provided by the user (TIDAK DIUBAH)
+        const coffeeVariants = [
+            'Original Latte',
+            'Aren creamy latte',
+            'Butterscotch',
+            'Caramel',
+            'Hazelnut',
+            'Bettersweet',
+            'Americano',
+            'Lemonade'
+        ];
+
+        // Payment methods as requested by the user (TIDAK DIUBAH)
+        const paymentMethods = [
+            'Tunai',
+            'Transfer',
+            'QRIS'
+        ];
+        
+        // Function to initialize Firebase
+        async function initializeFirebase() {
+            try {
+                if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith('...')) {
+                    console.error("Kesalahan: Anda belum memasukkan konfigurasi Firebase Anda. Silakan ikuti petunjuk di dalam kode.");
+                    return;
+                }
+                
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings/store`);
+                        const settingsSnap = await getDoc(settingsDocRef);
+                        
+                        // Periksa apakah dokumen settings ada
+                        if (settingsSnap.exists()) {
+                            storeSettings = settingsSnap.data();
+                            const firebaseProducts = storeSettings.products || [];
+
+                            // --- LOGIC BARU: Jika produk di Firebase kosong, kita isi dengan daftar baru ini
+                            if (firebaseProducts.length === 0 && products.length > 0) {
+                                console.log("Mendeteksi produk baru di kode. Menyimpan daftar produk baru ke Firebase.");
+                                // Simpan daftar produk baru ini ke Firebase
+                                await setDoc(settingsDocRef, { products: products, storeOpen: true }, { merge: true });
+                            } else if (firebaseProducts.length > 0) {
+                                // Jika sudah ada data di Firebase (dari aplikasi utama), kita gunakan itu
+                                products = firebaseProducts; 
+                            }
+                            // --- AKHIR LOGIC BARU ---
+
+                        } else {
+                            // Jika dokumen setting belum ada, buat dengan status Buka dan produk dari kode
+                            await setDoc(settingsDocRef, { storeOpen: true, products: products });
+                        }
+                        
+                        // FIX: Memanggil loadCartFromFirebase di sini untuk menjamin userId sudah terisi
+                        await loadCartFromFirebase(); 
+                        renderCustomerView();
+                        listenForUserOrdersCount(); // Listen for order count on page load
+                        console.log("Pengguna terotentikasi:", userId);
+                    } else {
+                        console.log("Pengguna tidak terotentikasi, mencoba masuk secara anonim atau dengan token.");
+                        try {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        } catch (error) {
+                            console.error("Gagal masuk:", error);
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Gagal menginisialisasi Firebase:", e);
+            }
+        }
+
+        // --- View Rendering Functions ---
+        function renderCustomerView() {
+            uiContent.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <button id="user-orders-button" class="relative bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-3 rounded-full transition-colors duration-200 shadow-md flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                            <path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.75.79-1.75 1.75v10.5c0 .96.79 1.75 1.75 1.75h12.974c.96 0 1.75-.79 1.75-1.75V8.513c0-.96-.79-1.75-1.75-1.75H16.5V6a4.5 4.5 0 10-9 0zm1.5.75v-2.25a3 3 0 116 0v2.25H9zm.75 4.5a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H10.5a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5h2.25a.75.75 0 000-1.5H10.5z" clip-rule="evenodd" />
+                        </svg>
+                        <span id="orders-badge" class="absolute top-0 right-0 -mt-1 -mr-1 flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-xs font-bold text-white leading-none hidden"></span>
+                    </button>
+                    <button id="admin-mode-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-full transition-colors duration-200 shadow-md flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                            <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex flex-col items-center">
+                    <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-2">Pre-Order Masakin Aja</h1>
+                </div>
+                
+                <!-- Product List -->
+                <div id="product-list" class="space-y-4 mb-6"></div>
+
+                <!-- Shopping Cart -->
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                    <h2 class="text-2xl font-bold mb-4">Keranjang Belanja</h2>
+                    <div id="cart-items" class="space-y-2 mb-4">
+                        <p id="empty-cart-message" class="text-center text-gray-500 dark:text-gray-400">Keranjang kosong.</p>
+                    </div>
+                    <div class="flex justify-between items-center font-bold text-lg mb-4">
+                        <span>Total:</span>
+                        <span id="cart-total">Rp 0</span>
+                    </div>
+
+                    <!-- Customer Info Form -->
+                    <div class="mb-4 space-y-2">
+                        <div>
+                            <label for="customer-name-input" class="block text-sm font-medium mb-1">Nama Pemesan</label>
+                            <input type="text" id="customer-name-input" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" placeholder="Masukkan nama Anda" />
+                        </div>
+                        <div>
+                            <label for="customer-wa-input" class="block text-sm font-medium mb-1">Nomor WA</label>
+                            <input type="text" id="customer-wa-input" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" placeholder="Masukkan nomor WhatsApp Anda" />
+                        </div>
+                        <!-- Payment Method Dropdown -->
+                        <div>
+                            <label for="payment-method-input" class="block text-sm font-medium mb-1">Metode Pembayaran</label>
+                            <select id="payment-method-input" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100">
+                                <option value="" disabled selected>Pilih metode pembayaran</option>
+                                ${paymentMethods.map(method => `<option value="${method}">${method}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div id="payment-details" class="mt-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700"></div>
+                    </div>
+                    
+                    <button id="place-order-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors duration-200 shadow-md">
+                        Pesan Sekarang
+                    </button>
+                    <p id="closed-store-message" class="text-center text-red-500 mt-2 hidden">Toko Sedang Tutup</p>
+                </div>
+            `;
+            
+            document.getElementById('admin-mode-button').addEventListener('click', () => {
+                adminModal.classList.remove('hidden');
+            });
+            document.getElementById('user-orders-button').addEventListener('click', () => {
+                listenForUserOrders();
+                userOrdersModal.classList.remove('hidden');
+            });
+            document.getElementById('place-order-button').addEventListener('click', placeOrder);
+            document.getElementById('payment-method-input').addEventListener('change', updatePaymentDetails);
+
+            renderProductList();
+            renderCart();
+            updatePaymentDetails();
+        }
+
+        function renderAdminView() {
+            uiContent.innerHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100">Panel Admin</h1>
+                    <button id="admin-mode-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-full transition-colors duration-200 shadow-md">
+                        Keluar Admin
+                    </button>
+                </div>
+
+                <!-- Admin Tabs -->
+                <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+                    <button id="orders-tab" class="px-4 py-2 text-sm font-semibold border-b-2 ${activeAdminTab === 'orders' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'} transition-colors duration-200">
+                        Pesanan
+                    </button>
+                    <button id="recap-tab" class="px-4 py-2 text-sm font-semibold border-b-2 ${activeAdminTab === 'recap' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'} transition-colors duration-200">
+                        Rekapitulasi
+                    </button>
+                    <button id="settings-tab" class="px-4 py-2 text-sm font-semibold border-b-2 ${activeAdminTab === 'settings' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'} transition-colors duration-200">
+                        Setting
+                    </button>
+                </div>
+                
+                <!-- Tab Content -->
+                <div id="admin-content" class="space-y-4"></div>
+            `;
+            
+            // Set up event listeners for the tabs
+            document.getElementById('orders-tab').addEventListener('click', () => {
+                activeAdminTab = 'orders';
+                renderAdminView(); // Re-render to show the orders list
+            });
+            document.getElementById('recap-tab').addEventListener('click', () => {
+                activeAdminTab = 'recap';
+                renderAdminView(); // Re-render to show the recap view
+            });
+            document.getElementById('settings-tab').addEventListener('click', () => {
+                activeAdminTab = 'settings';
+                renderAdminView(); // Re-render to show the settings view
+            });
+
+            document.getElementById('admin-mode-button').addEventListener('click', () => {
+                isAdminMode = false;
+                renderCustomerView();
+            });
+
+            // Render content based on the active tab
+            if (activeAdminTab === 'orders') {
+                document.getElementById('admin-content').innerHTML = `<div id="orders-list" class="space-y-4"><p class="text-center text-gray-500 dark:text-gray-400">Memuat pesanan...</p></div>`;
+                listenForOrders();
+            } else if (activeAdminTab === 'recap') {
+                 document.getElementById('admin-content').innerHTML = `<div id="recap-list" class="space-y-4"><p class="text-center text-gray-500 dark:text-gray-400">Memuat rekapitulasi...</p></div>`;
+                 listenForRecap();
+            } else if (activeAdminTab === 'settings') {
+                document.getElementById('admin-content').innerHTML = `<div id="settings-content"></div>`;
+                renderSettings();
+            }
+        }
+        
+        // Settings rendering and logic
+        async function renderSettings() {
+            const settingsContent = document.getElementById('settings-content');
+            
+            // Fetch initial settings from Firebase
+            const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings/store`);
+            const settingsSnap = await getDoc(settingsDocRef);
+            let storeOpen = true; // Default to open
+            
+            if (settingsSnap.exists()) {
+                const settings = settingsSnap.data();
+                storeOpen = settings.storeOpen;
+            } else {
+                 // Save default settings if they don't exist
+                 await setDoc(settingsDocRef, { storeOpen: true, products: products });
+            }
+
+            settingsContent.innerHTML = `
+                <div class="space-y-6">
+                    <!-- Store Status Toggle -->
+                    <div class="flex items-center justify-between p-4 bg-gray-100 dark:bg-neutral-700 rounded-lg shadow-sm">
+                        <p class="font-bold text-lg">Status Toko</p>
+                        <label for="store-status-toggle" class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="store-status-toggle" class="sr-only peer" ${storeOpen ? 'checked' : ''}>
+                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-500 dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <span id="store-status-label" class="ml-3 text-sm font-medium">${storeOpen ? 'Buka' : 'Tutup'}</span>
+                        </label>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listener for store status toggle
+            const storeStatusToggle = document.getElementById('store-status-toggle');
+            storeStatusToggle.addEventListener('change', async (e) => {
+                const newStatus = e.target.checked;
+                try {
+                    // Update only storeOpen status
+                    await setDoc(settingsDocRef, { storeOpen: newStatus }, { merge: true });
+                    statusMessage.textContent = `Status toko berhasil diperbarui menjadi ${newStatus ? 'Buka' : 'Tutup'}.`;
+                    statusMessage.classList.remove('hidden', 'bg-red-500');
+                    statusMessage.classList.add('bg-green-500');
+                    setTimeout(() => {
+                        statusMessage.classList.add('hidden');
+                    }, 3000);
+                } catch (e) {
+                    console.error("Gagal memperbarui status toko:", e);
+                    statusMessage.textContent = 'Gagal memperbarui status toko!';
+                    statusMessage.classList.remove('hidden', 'bg-green-500');
+                    statusMessage.classList.add('bg-red-500');
+                    setTimeout(() => {
+                        statusMessage.classList.add('hidden');
+                    }, 3000);
+                }
+            });
+            
+            // Listen for real-time updates to settings
+            onSnapshot(settingsDocRef, (doc) => {
+                if (!doc.exists()) {
+                    return; // Document doesn't exist
+                }
+                const settings = doc.data();
+                if (settings) {
+                    // Update the local product list (prices might change via the other app)
+                    // If the original app changes prices, this app will reflect them here:
+                    products = settings.products || products; 
+
+                    // Update the UI elements for the toggle
+                    const toggle = document.getElementById('store-status-toggle');
+                    const label = document.getElementById('store-status-label');
+                    if (toggle) {
+                        toggle.checked = settings.storeOpen;
+                    }
+                    if (label) {
+                        label.textContent = settings.storeOpen ? 'Buka' : 'Tutup';
+                    }
+
+                    // Update the customer view if necessary
+                    if (!isAdminMode) {
+                        renderCustomerView();
+                    }
+                }
+            });
+        }
+        
+        function renderProductList() {
+            const productList = document.getElementById('product-list');
+            const placeOrderButton = document.getElementById('place-order-button');
+            const closedStoreMessage = document.getElementById('closed-store-message');
+            
+            // Check store status from Firebase settings
+            const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings/store`);
+            onSnapshot(settingsDocRef, (doc) => {
+                 let storeOpen = true;
+                 if (doc.exists()) {
+                     const settings = doc.data();
+                     storeOpen = settings.storeOpen;
+                 }
+                
+                if (storeOpen) {
+                    placeOrderButton.disabled = false;
+                    placeOrderButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    closedStoreMessage.classList.add('hidden');
+                } else {
+                    placeOrderButton.disabled = true;
+                    placeOrderButton.classList.add('opacity-50', 'cursor-not-allowed');
+                    closedStoreMessage.classList.remove('hidden');
+                }
+            });
+            
+            productList.innerHTML = '';
+            
+            if (products.length === 0) {
+                 productList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Belum ada produk yang tersedia. Silakan atur produk di Panel Admin aplikasi utama Anda.</p>`;
+                 return;
+            }
+
+            products.forEach(product => {
+                const productCard = document.createElement('div');
+                productCard.className = 'p-4 bg-gray-200 dark:bg-neutral-700 rounded-lg shadow-sm flex flex-col';
+                
+                const quantity = cart[product.id] ? cart[product.id].quantity : 0;
+                
+                productCard.innerHTML = `
+                    <div class="flex items-center mb-4">
+                        <div class="flex-grow">
+                            <p class="font-semibold text-lg">${product.name}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">${product.description}</p>
+                            <p class="font-bold text-base mt-1">Rp ${product.price.toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                    <div class="flex justify-center items-center space-x-2">
+                        <button data-id="${product.id}" class="minus-button bg-neutral-300 dark:bg-neutral-600 text-gray-800 dark:text-gray-200 font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
+                            -
+                        </button>
+                        <span class="quantity-display font-bold text-lg w-6 text-center">${quantity}</span>
+                        <button data-id="${product.id}" class="plus-button bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
+                            +
+                        </button>
+                    </div>
+                `;
+                productList.appendChild(productCard);
+            });
+
+            document.querySelectorAll('.minus-button').forEach(button => {
+                button.addEventListener('click', decrementQuantity);
+            });
+            document.querySelectorAll('.plus-button').forEach(button => {
+                button.addEventListener('click', incrementQuantity);
+            });
+        }
+
+        function renderCart() {
+            const cartItems = document.getElementById('cart-items');
+            const cartTotalElement = document.getElementById('cart-total');
+            cartItems.innerHTML = '';
+            let total = 0;
+
+            if (Object.keys(cart).length === 0) {
+                cartItems.innerHTML = `<p id="empty-cart-message" class="text-center text-gray-500 dark:text-gray-400">Keranjang kosong.</p>`;
+            } else {
+                for (const productId in cart) {
+                    const item = cart[productId];
+                    const product = products.find(p => p.id === productId);
+                    if (product) {
+                        const itemElement = document.createElement('div');
+                        itemElement.className = 'flex justify-between items-center';
+                        itemElement.innerHTML = `
+                            <div>
+                                <p>${product.name} x ${item.quantity}</p>
+                            </div>
+                            <p>Rp ${(product.price * item.quantity).toLocaleString('id-ID')}</p>
+                        `;
+                        // Removed dynamic variant rendering
+                        cartItems.appendChild(itemElement);
+
+                        total += product.price * item.quantity;
+                    }
+                }
+            }
+            cartTotalElement.textContent = `Rp ${total.toLocaleString('id-ID')}`;
+        }
+
+        // Function to update the payment details section
+        function updatePaymentDetails() {
+            const paymentMethod = document.getElementById('payment-method-input').value;
+            const detailsContainer = document.getElementById('payment-details');
+            
+            let content = '';
+            if (paymentMethod === 'QRIS') {
+                content = `
+                    <p class="font-bold text-lg mb-2">Scan untuk Bayar</p>
+                    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCasssXDfDwY5JY1YgVuuHIoSk0Xl0PPy5xdfl3cFsRnYC0euhgylGONrXhl2L653RI3IKl5faxwfovcpXqi7hwSOOiytvZO7-rwtKvBOuB1BG0AIVEqatnKRPjJ5vbJHIkRM76OHj4FpKhSvG-XMAXVhnWRuQFk8m0GU0WDmE7g531Ge5MzyldTxjdIs/s375/Qris%20Masakin.jpg" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-xs text-center text-gray-600 dark:text-gray-400 mt-2">Gambar QRIS tidak dapat dimuat.</div>
+                `;
+            } else if (paymentMethod === 'Transfer') {
+                content = `
+                    <p class="font-bold text-lg mb-2">Detail Transfer Bank</p>
+                    <p class="text-sm">Bank: Bank Syariah Indonesia (BSI)</p>
+                    <p class="text-sm">No.Rek: 7292519928</p>
+                    <p class="text-sm">a.n: Irianti Mega</p>
+                `;
+            } else if (paymentMethod === 'Tunai') {
+                content = `<p class="text-sm text-center text-gray-500 dark:text-gray-400">Pembayaran dilakukan secara tunai saat pesanan diterima.</p>`;
+            } else {
+                content = ''; // This will handle the empty default state
+            }
+
+            detailsContainer.innerHTML = content;
+        }
+        
+        // --- Data & Interaction Functions ---
+        async function incrementQuantity(event) {
+            const productId = event.target.dataset.id;
+            const product = products.find(p => p.id === productId);
+
+            // Safety check for empty product list
+            if (!product) {
+                 console.error("Produk tidak ditemukan.");
+                 return;
+            }
+
+            if (cart[productId]) {
+                cart[productId].quantity++;
+            } else {
+                cart[productId] = { quantity: 1 };
+                // Removed coffee variant logic here
+            }
+            
+            await saveCartToFirebase();
+            renderProductList(); // Re-render product list to update quantity display
+            renderCart();
+        }
+
+        async function decrementQuantity(event) {
+            const productId = event.target.dataset.id;
+             const product = products.find(p => p.id === productId);
+
+            if (cart[productId]) {
+                cart[productId].quantity--;
+                if (cart[productId].quantity <= 0) {
+                    delete cart[productId];
+                } 
+            }
+
+            await saveCartToFirebase();
+            renderProductList(); // Re-render product list to update quantity display
+            renderCart();
+        }
+
+        // New function to reset the form and cart UI
+        function resetFormAndCart() {
+            cart = {};
+            document.getElementById('customer-name-input').value = '';
+            document.getElementById('customer-wa-input').value = '';
+            document.getElementById('payment-method-input').value = '';
+            renderProductList();
+            renderCart();
+            updatePaymentDetails();
+        }
+
+        async function saveCartToFirebase() {
+            if (!userId) {
+                console.error("User ID tidak tersedia.");
+                return;
+            }
+            const cartDocRef = doc(db, `/artifacts/${appId}/users/${userId}/cart/current`);
+            try {
+                if (Object.keys(cart).length === 0) {
+                    // If cart is empty, delete the document
+                    await deleteDoc(cartDocRef);
+                } else {
+                    await setDoc(cartDocRef, { cartData: cart });
+                }
+                console.log("Keranjang berhasil disimpan ke Firebase.");
+            } catch (e) {
+                console.error("Gagal menyimpan keranjang:", e);
+            }
+        }
+
+        async function loadCartFromFirebase() {
+            if (!userId) return;
+            const cartDocRef = doc(db, `/artifacts/${appId}/users/${userId}/cart/current`);
+            try {
+                const docSnap = await getDoc(cartDocRef);
+                if (docSnap.exists()) {
+                    cart = docSnap.data().cartData;
+                    console.log("Keranjang berhasil dimuat dari Firebase.");
+                } else {
+                    console.log("Tidak ada data keranjang di Firebase.");
+                }
+            } catch (e) {
+                console.error("Gagal memuat keranjang:", e);
+            }
+        }
+
+
+        async function placeOrder() {
+            const customerName = document.getElementById('customer-name-input').value.trim();
+            const customerWa = document.getElementById('customer-wa-input').value.trim();
+            const paymentMethod = document.getElementById('payment-method-input').value;
+
+            if (Object.keys(cart).length === 0) {
+                orderSuccessModal.querySelector('h2').textContent = "Keranjang Kosong";
+                orderSuccessModal.querySelector('p').textContent = "Silakan tambahkan item ke keranjang Anda sebelum memesan.";
+                orderSuccessModal.classList.remove('hidden');
+                return;
+            }
+            if (!customerName || !customerWa) {
+                orderSuccessModal.querySelector('h2').textContent = "Data Kurang Lengkap";
+                orderSuccessModal.querySelector('p').textContent = "Nama dan Nomor WA tidak boleh kosong.";
+                orderSuccessModal.classList.remove('hidden');
+                return;
+            }
+            if (!paymentMethod) {
+                orderSuccessModal.querySelector('h2').textContent = "Metode Pembayaran Belum Dipilih";
+                orderSuccessModal.querySelector('p').textContent = "Silakan pilih metode pembayaran.";
+                orderSuccessModal.classList.remove('hidden');
+                return;
+            }
+
+            const order = {
+                items: cart,
+                total: calculateTotal(),
+                customerName: customerName,
+                customerWa: customerWa,
+                paymentMethod: paymentMethod,
+                status: 'pending',
+                customerId: userId,
+                timestamp: Date.now()
+            };
+
+            try {
+                const ordersCollectionPath = `/artifacts/${appId}/public/data/orders`;
+                await addDoc(collection(db, ordersCollectionPath), order);
+                console.log("Pesanan berhasil dibuat!");
+                await deleteDoc(doc(db, `/artifacts/${appId}/users/${userId}/cart/current`));
+            } catch (e) {
+                console.error("Gagal membuat pesanan:", e);
+            } finally {
+                orderSuccessModal.classList.remove('hidden');
+                resetFormAndCart();
+            }
+        }
+
+        // FIX: Menambahkan Event Listener di bagian akhir script
+        closeOrderSuccessModalButton.addEventListener('click', () => {
+            orderSuccessModal.classList.add('hidden');
+        });
+
+
+        function calculateTotal() {
+            let total = 0;
+            for (const productId in cart) {
+                const item = cart[productId];
+                const product = products.find(p => p.id === productId);
+                if (product) {
+                    total += product.price * item.quantity;
+                }
+            }
+            return total;
+        }
+
+        // --- Admin Functions ---
+        async function listenForOrders() {
+            const ordersList = document.getElementById('orders-list');
+            const ordersCollectionPath = `/artifacts/${appId}/public/data/orders`;
+            
+            const q = query(collection(db, ordersCollectionPath), orderBy('timestamp', 'desc'));
+            
+            onSnapshot(q, (snapshot) => {
+                ordersList.innerHTML = '';
+                if (snapshot.empty) {
+                    ordersList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Belum ada pesanan.</p>`;
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const order = doc.data();
+                    const orderItem = document.createElement('div');
+                    orderItem.className = `p-4 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 transition-colors duration-200 ${order.status === 'completed' ? 'bg-green-100 dark:bg-green-900' : 'bg-yellow-100 dark:bg-yellow-900'}`;
+                    
+                    const total = order.total.toLocaleString('id-ID');
+                    const orderDate = new Date(order.timestamp).toLocaleString('id-ID');
+                    
+                    let itemsHtml = '';
+                    for (const productId in order.items) {
+                        const item = order.items[productId];
+                        const product = products.find(p => p.id === productId);
+                        if (product) {
+                            itemsHtml += `<li>${product.name} x ${item.quantity}</li>`;
+                        }
+                    }
+
+                    orderItem.innerHTML = `
+                        <p class="font-bold text-lg mb-2">Pesanan #${doc.id.substring(0, 8)}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Nama: ${order.customerName}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Nomor WA: ${order.customerWa}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Metode Pembayaran: ${order.paymentMethod}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Pelanggan ID: ${order.customerId.substring(0, 5)}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Tanggal: ${orderDate}</p>
+                        <ul class="list-disc list-inside mb-4">${itemsHtml}</ul>
+                        <p class="font-bold text-lg mb-4">Total: Rp ${total}</p>
+                        <p class="font-semibold text-sm mb-2">Status: ${order.status === 'completed' ? '✅ Pembayaran Diterima' : '⏳ Menunggu Konfirmasi'}</p>
+                        ${order.status !== 'completed' ? `<button data-id="${doc.id}" class="complete-order-button bg-neutral-800 hover:bg-neutral-900 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm w-full mb-2">Tandai Selesai</button>` : ''}
+                        <button data-id="${doc.id}" class="delete-order-button bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm w-full">Hapus Pesanan</button>
+                    `;
+                    ordersList.appendChild(orderItem);
+                });
+
+                document.querySelectorAll('.complete-order-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const orderId = e.target.dataset.id;
+                        completeOrder(orderId);
+                    });
+                });
+                document.querySelectorAll('.delete-order-button').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const orderId = e.target.dataset.id;
+                        deleteOrder(orderId);
+                    });
+                });
+            });
+        }
+
+        async function completeOrder(orderId) {
+            const orderDocRef = doc(db, `/artifacts/${appId}/public/data/orders/${orderId}`);
+            try {
+                await updateDoc(orderDocRef, {
+                    status: 'completed'
+                });
+                console.log("Pesanan berhasil ditandai sebagai selesai:", orderId);
+            } catch (e) {
+                console.error("Gagal memperbarui pesanan:", e);
+            }
+        }
+        
+        async function deleteOrder(orderId) {
+            const orderDocRef = doc(db, `/artifacts/${appId}/public/data/orders/${orderId}`);
+            try {
+                await deleteDoc(orderDocRef);
+                console.log("Pesanan berhasil dihapus:", orderId);
+            } catch (e) {
+                console.error("Gagal menghapus pesanan:", e);
+            }
+        }
+        
+        // --- Recap Functions ---
+        async function listenForRecap() {
+            const recapList = document.getElementById('recap-list');
+            const ordersCollectionPath = `/artifacts/${appId}/public/data/orders`;
+            
+            const q = query(collection(db, ordersCollectionPath));
+            
+            onSnapshot(q, (snapshot) => {
+                const vendorRecap = {}; // Mengganti packageRecap menjadi vendorRecap
+                let totalRevenue = 0; 
+
+                if (snapshot.empty) {
+                    recapList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Belum ada pesanan.</p>`;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const order = doc.data();
+                    totalRevenue += order.total; 
+                    
+                    for (const productId in order.items) {
+                        const item = order.items[productId];
+                        const product = products.find(p => p.id === productId);
+
+                        if (product) {
+                            const vendorName = product.description.replace('Vendor: ', '').split(' (')[0]; // Extract Vendor Name
+                            
+                            // Initialize vendor entry if it doesn't exist
+                            if (!vendorRecap[vendorName]) {
+                                vendorRecap[vendorName] = { 
+                                    items: {}, 
+                                    revenue: 0 
+                                };
+                            }
+
+                            // Calculate item count and total revenue per vendor
+                            const itemName = product.name;
+                            const itemPrice = product.price;
+
+                            vendorRecap[vendorName].revenue += itemPrice * item.quantity;
+                            
+                            if (!vendorRecap[vendorName].items[itemName]) {
+                                vendorRecap[vendorName].items[itemName] = {
+                                    totalQty: 0,
+                                    customerDetails: []
+                                };
+                            }
+
+                            vendorRecap[vendorName].items[itemName].totalQty += item.quantity;
+                            vendorRecap[vendorName].items[itemName].customerDetails.push({
+                                name: order.customerName,
+                                qty: item.quantity
+                            });
+                        }
+                    }
+                });
+
+                // Generate HTML for the recap view
+                let htmlContent = `
+                    <h3 class="text-xl font-bold mb-4 text-center">Rekapitulasi Item Terjual</h3>
+                    <div class="space-y-6">
+                        <!-- Total Revenue -->
+                        <div class="p-4 bg-green-100 dark:bg-green-900 rounded-lg">
+                            <h4 class="text-lg font-semibold mb-2">Total Uang Terkumpul</h4>
+                            <p class="font-bold text-2xl text-green-600">Rp ${totalRevenue.toLocaleString('id-ID')}</p>
+                        </div>
+                        
+                        <!-- Vendor Recap -->
+                        <h4 class="text-xl font-bold mb-3 mt-6 border-b pb-2 border-gray-300 dark:border-gray-600">Rekapitulasi per Vendor</h4>
+                        ${Object.keys(vendorRecap).length === 0 ? `<p class="text-gray-500">Belum ada paket yang dipesan.</p>` : `
+                            <div class="space-y-6">
+                            ${Object.entries(vendorRecap).map(([vendor, data]) => `
+                                <div class="p-4 bg-gray-100 dark:bg-neutral-700 rounded-lg shadow-md">
+                                    <h5 class="text-lg font-bold mb-3">${vendor}</h5>
+                                    <div class="text-sm mb-3">
+                                        <p class="font-semibold text-base text-blue-600 dark:text-blue-400">Total Penjualan: Rp ${data.revenue.toLocaleString('id-ID')}</p>
+                                    </div>
+                                    <h6 class="font-semibold text-md mt-4">Rincian Item:</h6>
+                                    <ul class="list-disc list-inside space-y-2 text-sm ml-4">
+                                        ${Object.entries(data.items).map(([itemName, itemData]) => `
+                                            <li>
+                                                <span class="font-bold">${itemName} x ${itemData.totalQty}</span>
+                                                <ul class="list-none text-xs text-gray-600 dark:text-gray-400 mt-1 space-y-0">
+                                                    ${itemData.customerDetails.map(customer => `
+                                                        <li>${customer.name} - ${itemName} x ${customer.qty}</li>
+                                                    `).join('')}
+                                                </ul>
+                                            </li>
+                                        `).join('')}
+                                    </ul>
+                                </div>
+                            `).join('')}
+                            </div>
+                        `}
+                    </div>
+                `;
+
+                recapList.innerHTML = htmlContent;
+            });
+        }
+        
+        // --- User Order History Functions ---
+        function listenForUserOrdersCount() {
+            if (!userId) {
+                console.error("User ID tidak tersedia.");
+                return;
+            }
+            const ordersCollectionPath = `/artifacts/${appId}/public/data/orders`;
+            const q = query(collection(db, ordersCollectionPath), where("customerId", "==", userId));
+
+            onSnapshot(q, (snapshot) => {
+                const floatingBadge = document.getElementById('orders-badge');
+                
+                // FIX: Memeriksa keberadaan elemen sebelum manipulasi untuk mencegah TypeError
+                if (!floatingBadge) return; 
+
+                if (snapshot.empty) {
+                    floatingBadge.textContent = '0';
+                    floatingBadge.classList.add('hidden');
+                } else {
+                    floatingBadge.textContent = snapshot.size;
+                    floatingBadge.classList.remove('hidden');
+                }
+            });
+        }
+        
+        async function listenForUserOrders() {
+            const userOrdersList = document.getElementById('user-orders-list');
+            if (!userId) {
+                userOrdersList.innerHTML = `<p class="text-center text-red-500">Gagal memuat riwayat. Silakan muat ulang.</p>`;
+                return;
+            }
+            
+            const ordersCollectionPath = `/artifacts/${appId}/public/data/orders`;
+            const q = query(collection(db, ordersCollectionPath), where("customerId", "==", userId));
+
+            onSnapshot(q, (snapshot) => {
+                userOrdersList.innerHTML = '';
+                if (snapshot.empty) {
+                    userOrdersList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Anda belum membuat pesanan.</p>`;
+                    return;
+                }
+                
+                snapshot.forEach(doc => {
+                    const order = doc.data();
+                    const orderItem = document.createElement('div');
+                    orderItem.className = `p-4 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 transition-colors duration-200 ${order.status === 'completed' ? 'bg-green-100 dark:bg-green-900' : 'bg-yellow-100 dark:bg-yellow-900'}`;
+                    
+                    const total = order.total.toLocaleString('id-ID');
+                    const orderDate = new Date(order.timestamp).toLocaleString('id-ID');
+                    
+                    let itemsHtml = '';
+                    for (const productId in order.items) {
+                        const item = order.items[productId];
+                        const product = products.find(p => p.id === productId);
+                        if (product) {
+                            itemsHtml += `<li>${product.name} x ${item.quantity}</li>`;
+                        }
+                    }
+
+                    orderItem.innerHTML = `
+                        <p class="font-bold text-lg mb-2">Pesanan #${doc.id.substring(0, 8)}</p>
+                        <ul class="list-disc list-inside mb-4">${itemsHtml}</ul>
+                        <p class="font-bold text-lg mb-4">Total: Rp ${total}</p>
+                        <p class="font-semibold text-sm mb-2">Status: ${order.status === 'completed' ? '✅ Pembayaran Diterima' : '⏳ Menunggu Konfirmasi'}</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Tanggal: ${orderDate}</p>
+                    `;
+                    userOrdersList.appendChild(orderItem);
+                });
+            });
+        }
+        
+        // --- Admin Login Logic ---
+        loginSubmitButton.addEventListener('click', () => {
+            const id = adminIdInput.value.trim();
+            const code = adminCodeInput.value.trim();
+
+            if (id === ADMIN_ID && code === ADMIN_CODE) {
+                loginMessage.textContent = "Berhasil masuk!";
+                loginMessage.classList.add('text-green-500');
+                loginMessage.classList.remove('text-red-500');
+                
+                setTimeout(() => {
+                    adminModal.classList.add('hidden');
+                    loginMessage.textContent = '';
+                    isAdminMode = true;
+                    activeAdminTab = 'orders'; // Reset to orders tab on login
+                    renderAdminView();
+                }, 1000); // Hide modal after 1 second
+            } else {
+                loginMessage.textContent = "ID atau Kode salah.";
+                loginMessage.classList.add('text-red-500');
+                loginMessage.classList.remove('text-green-500');
+            }
+        });
+
+        closeAdminModalButton.addEventListener('click', () => {
+            adminModal.classList.add('hidden');
+            adminIdInput.value = '';
+            adminCodeInput.value = '';
+            loginMessage.textContent = '';
+        });
+        
+        // Add this event listener to the `window.onload` or similar setup block
+        closeUserOrdersModalButton.addEventListener('click', () => {
+            userOrdersModal.classList.add('hidden');
+        });
+        
+        // New event listeners for the payment info modal
+        showPaymentInfoButton.addEventListener('click', () => {
+            userOrdersModal.classList.add('hidden');
+            paymentInfoModal.classList.remove('hidden');
+        });
+        
+        closePaymentInfoModalButton.addEventListener('click', () => {
+            paymentInfoModal.classList.add('hidden');
+            userOrdersModal.classList.remove('hidden');
+        });
+
+        // Initialize the app on load
+        window.onload = initializeFirebase;
+    </script>
+</body>
+</html>

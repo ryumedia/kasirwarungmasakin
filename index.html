@@ -183,6 +183,7 @@ const firebaseConfig = {
 
         // =======================================================================================
         // DATA PRODUK BARU DARI DAFTAR YANG ANDA BERIKAN
+        // =BAWAAN PRODUK (DEFAULT PRODUCT LIST)
         // =======================================================================================
         let products = [
             // --- Pin Kopi ---
@@ -328,7 +329,14 @@ const firebaseConfig = {
                 
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
-                        userId = user.uid;
+                        // FIX: Mempertahankan ID Pengguna dengan lebih kuat
+                        if (localStorage.getItem('user_id')) {
+                            userId = localStorage.getItem('user_id');
+                        } else {
+                            userId = user.uid;
+                            localStorage.setItem('user_id', userId);
+                        }
+
                         const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings/store`);
                         const settingsSnap = await getDoc(settingsDocRef);
                         
@@ -392,8 +400,9 @@ const firebaseConfig = {
                         </svg>
                     </button>
                 </div>
-                <div class="flex flex-col items-center">
-                    <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100 mb-2">Pre-Order Masakin Aja</h1>
+                <div class="flex flex-col items-center mb-6">
+                    <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100">Masakin Aja</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Pre-Order System</p>
                 </div>
                 
                 <!-- Product List -->
@@ -627,33 +636,86 @@ const firebaseConfig = {
                  return;
             }
 
-            products.forEach(product => {
-                const productCard = document.createElement('div');
-                productCard.className = 'p-4 bg-gray-200 dark:bg-neutral-700 rounded-lg shadow-sm flex flex-col';
+            // Group products by vendor
+            const groupedProducts = products.reduce((acc, product) => {
+                const vendorMatch = product.description.match(/Vendor: (.*)/);
+                const vendorName = vendorMatch ? vendorMatch[1].split(' (')[0] : 'Lainnya';
+                if (!acc[vendorName]) {
+                    acc[vendorName] = [];
+                }
+                acc[vendorName].push(product);
+                return acc;
+            }, {});
+
+            let productHtml = '';
+            let first = true;
+
+            for (const vendorName in groupedProducts) {
+                const vendorId = vendorName.replace(/\s/g, '-').toLowerCase();
+                const isExpanded = first ? 'true' : 'false';
                 
-                const quantity = cart[product.id] ? cart[product.id].quantity : 0;
-                
-                productCard.innerHTML = `
-                    <div class="flex items-center mb-4">
-                        <div class="flex-grow">
-                            <p class="font-semibold text-lg">${product.name}</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">${product.description}</p>
-                            <p class="font-bold text-base mt-1">Rp ${product.price.toLocaleString('id-ID')}</p>
+                productHtml += `
+                    <div class="rounded-xl shadow-md border border-gray-300 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
+                        <!-- Accordion Header (Vendor Name) -->
+                        <button class="accordion-header flex justify-between items-center w-full p-4 font-bold text-lg transition-colors duration-200 bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600"
+                            data-target="#${vendorId}-body" aria-expanded="${isExpanded}">
+                            <span>${vendorName}</span>
+                            <svg class="w-5 h-5 transition-transform duration-300 ${first ? 'transform rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <!-- Accordion Body (Products) -->
+                        <div id="${vendorId}-body" class="accordion-body ${first ? '' : 'hidden'}" aria-labelledby="${vendorId}-header">
+                            <div class="p-4 space-y-4">
+                                ${groupedProducts[vendorName].map(product => {
+                                    const quantity = cart[product.id] ? cart[product.id].quantity : 0;
+                                    return `
+                                        <div class="flex justify-between items-center border-b pb-3 last:border-b-0 last:pb-0">
+                                            <div class="flex-grow">
+                                                <p class="font-semibold">${product.name}</p>
+                                                <p class="text-sm font-bold text-base mt-1 text-yellow-600 dark:text-yellow-400">Rp ${product.price.toLocaleString('id-ID')}</p>
+                                            </div>
+                                            <div class="flex items-center space-x-2">
+                                                <button data-id="${product.id}" class="minus-button bg-neutral-300 dark:bg-neutral-600 text-gray-800 dark:text-gray-200 font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
+                                                    -
+                                                </button>
+                                                <span class="quantity-display font-bold text-lg w-6 text-center">${quantity}</span>
+                                                <button data-id="${product.id}" class="plus-button bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
+                                                    +
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
                         </div>
                     </div>
-                    <div class="flex justify-center items-center space-x-2">
-                        <button data-id="${product.id}" class="minus-button bg-neutral-300 dark:bg-neutral-600 text-gray-800 dark:text-gray-200 font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
-                            -
-                        </button>
-                        <span class="quantity-display font-bold text-lg w-6 text-center">${quantity}</span>
-                        <button data-id="${product.id}" class="plus-button bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
-                            +
-                        </button>
-                    </div>
                 `;
-                productList.appendChild(productCard);
+                first = false;
+            }
+
+            productList.innerHTML = productHtml;
+
+            // Add event listeners for the accordion
+            document.querySelectorAll('.accordion-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const targetId = header.dataset.target;
+                    const targetBody = document.querySelector(targetId);
+                    const isExpanded = header.getAttribute('aria-expanded') === 'true';
+
+                    // Toggle visibility and attributes
+                    targetBody.classList.toggle('hidden');
+                    header.setAttribute('aria-expanded', !isExpanded);
+                    
+                    // Toggle arrow rotation
+                    const arrow = header.querySelector('svg');
+                    arrow.classList.toggle('rotate-180');
+                });
             });
 
+
+            // Add event listeners for the quantity buttons
             document.querySelectorAll('.minus-button').forEach(button => {
                 button.addEventListener('click', decrementQuantity);
             });
@@ -982,7 +1044,8 @@ const firebaseConfig = {
                         const product = products.find(p => p.id === productId);
 
                         if (product) {
-                            const vendorName = product.description.replace('Vendor: ', '').split(' (')[0]; // Extract Vendor Name
+                            const vendorMatch = product.description.match(/Vendor: (.*)/);
+                            const vendorName = vendorMatch ? vendorMatch[1].split(' (')[0] : 'Lainnya'; // Extract Vendor Name
                             
                             // Initialize vendor entry if it doesn't exist
                             if (!vendorRecap[vendorName]) {

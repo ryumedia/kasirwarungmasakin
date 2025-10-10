@@ -100,7 +100,8 @@
                     <h3 class="text-xl font-bold mb-2">QRIS</h3>
                     <p class="mb-2">Scan untuk Bayar</p>
                     <!-- Updated QRIS Image -->
-                    <img id="qris-image" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCasssXDfDwY5JY1YgVuuHIoSk0Xl0PPy5xdfl3cFsRnYC0euhgylGONrXhl2L653IKl5faxwfovcpXqi7hwSOOiytvZO7-rwtKvBOuB1BG0AIVEqatnKRPjJ5vbJHIkRM76OHj4FpKhSvG-XMAXVhnWRuQFk8m0GU0WDmE7g531Ge5MzyldTxjdIs/s375/Qris%20Masakin.jpg" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <!-- Placeholder URL. Ganti dengan URL gambar QRIS Anda yang diupload ke layanan hosting stabil. -->
+                    <img id="qris-image" src="https://placehold.co/200x200/9b59b6/ffffff?text=QRIS+Masakin" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto">
                     <div class="hidden text-xs text-center text-gray-600 dark:text-gray-400 mt-2">Gambar QRIS tidak dapat dimuat.</div>
                 </div>
             </div>
@@ -881,12 +882,15 @@
             const detailsContainer = document.getElementById('payment-details');
             
             let content = '';
+            // URL placeholder yang terjamin berfungsi untuk demonstrasi
+            const QRIS_URL = "https://placehold.co/200x200/4c4a4e/ffffff?text=QRIS+MASAKIN"; 
+
             if (paymentMethod === 'QRIS') {
                 content = `
                     <p class="font-bold text-lg mb-2">Detail Pembayaran QRIS</p>
                     <p class="mb-2">Scan untuk Bayar</p>
-                    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCasssXDfDwY5JY1YgVuuHIoSk0Xl0PPy5xdfl3cFsRnYC0euhgylGONrXhl2L653IKl5faxwfovcpXqi7hwSOOiytvZO7-rwtKvBOuB1BG0AIVEqatnKRPjJ5vbJHIkRM76OHj4FpKhSvG-XMAXVhnWRuQFk8m0GU0WDmE7g531Ge5MzyldTxjdIs/s375/Qris%20Masakin.jpg" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                    <div class="hidden text-xs text-center text-gray-600 dark:text-gray-400 mt-2">Gambar QRIS tidak dapat dimuat.</div>
+                    <img id="qris-display-image" src="${QRIS_URL}" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto">
+                    <div class="hidden text-xs text-center text-red-600 dark:text-red-400 mt-2" id="qris-error-message">Gambar QRIS gagal dimuat. Gunakan tautan lain.</div>
                 `;
             } else if (paymentMethod === 'Transfer') {
                 content = `
@@ -902,6 +906,22 @@
             }
 
             detailsContainer.innerHTML = content;
+            
+            // FIX: Tambahkan penanganan error di sini juga untuk menyembunyikan pesan default
+            const imgElement = document.getElementById('qris-display-image');
+            if (imgElement) {
+                // Ensure the error message is hidden when the image loads successfully
+                imgElement.onload = function() {
+                    const errorMessage = document.getElementById('qris-error-message');
+                    if (errorMessage) errorMessage.classList.add('hidden');
+                };
+                // Show error message if the image fails to load
+                imgElement.onerror = function() {
+                    this.style.display = 'none';
+                    const errorMessage = document.getElementById('qris-error-message');
+                    if (errorMessage) errorMessage.classList.remove('hidden');
+                };
+            }
         }
         
         // --- Data & Interaction Functions ---

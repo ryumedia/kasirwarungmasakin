@@ -100,7 +100,7 @@
                     <h3 class="text-xl font-bold mb-2">QRIS</h3>
                     <p class="mb-2">Scan untuk Bayar</p>
                     <!-- Updated QRIS Image -->
-                    <img id="qris-image" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCasssXDfDwY5JY1YgVuuHIoSk0Xl0PPy5xdfl3cFsRnYC0euhgylGONrXhl2L653RI3IKl5faxwfovcpXqi7hwSOOiytvZO7-rwtKvBOuB1BG0AIVEqatnKRPjJ5vbJHIkRM76OHj4FpKhSvG-XMAXVhnWRuQFk8m0GU0WDmE7g531Ge5MzyldTxjdIs/s375/Qris%20Masakin.jpg" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <img id="qris-image" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCasssXDfDwY5JY1YgVuuHIoSk0Xl0PPy5xdfl3cFsRnYC0euhgylGONrXhl2L653IKl5faxwfovcpXqi7hwSOOiytvZO7-rwtKvBOuB1BG0AIVEqatnKRPjJ5vbJHIkRM76OHj4FpKhSvG-XMAXVhnWRuQFk8m0GU0WDmE7g531Ge5MzyldTxjdIs/s375/Qris%20Masakin.jpg" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <div class="hidden text-xs text-center text-gray-600 dark:text-gray-400 mt-2">Gambar QRIS tidak dapat dimuat.</div>
                 </div>
             </div>
@@ -116,7 +116,7 @@
     </div>
     
     <script type="module">
-        // Import Firebase libraries
+        // Import Firebase libraries harus di level teratas dari script module
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, doc, where, getDoc, setDoc, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -129,15 +129,15 @@
         // PENTING: Ganti objek 'firebaseConfig' di bawah ini dengan konfigurasi pribadi Anda
         // dari konsol Firebase. Ini adalah penyebab error yang Anda alami.
         // =======================================================================================
-const firebaseConfig = {
-  apiKey: "AIzaSyDO6OaqmYpAWfOmtsRg_g1yC_WO2J2gXOI",
-  authDomain: "test-project-dc4c4.firebaseapp.com",
-  projectId: "test-project-dc4c4",
-  storageBucket: "test-project-dc4c4.firebasestorage.app",
-  messagingSenderId: "42493897694",
-  appId: "1:42493897694:web:a29260c37485c02ccb8b4f",
-  measurementId: "G-3BDGHJR2LT"
-};
+        const firebaseConfig = {
+          apiKey: "AIzaSyDO6OaqmYpAWfOmtsRg_g1yC_WO2J2gXOI",
+          authDomain: "test-project-dc4c4.firebaseapp.com",
+          projectId: "test-project-dc4c4",
+          storageBucket: "test-project-dc4c4.firebasestorage.app",
+          messagingSenderId: "42493897694",
+          appId: "1:42493897694:web:a29260c37485c02ccb8b4f",
+          measurementId: "G-3BDGHJR2LT"
+        };
         // =======================================================================================
         
         const initialAuthToken = null; // Ini hanya digunakan untuk lingkungan khusus
@@ -293,6 +293,19 @@ const firebaseConfig = {
             { id: 'p84', name: 'Martabak Keju Coklat', price: parsePrice('20k'), description: 'Vendor: Linda', hasCoffee: false },
             { id: 'p85', name: 'Martabak Keju Kacang', price: parsePrice('20k'), description: 'Vendor: Linda', hasCoffee: false },
             { id: 'p86', name: 'Martabak Keju Pisang', price: parsePrice('21k'), description: 'Vendor: Linda', hasCoffee: false },
+            
+            // --- Sahabat Kebab ---
+            { id: 'p87', name: 'Beef Kebab Original Saouce (S)', price: parsePrice('13k'), description: 'Vendor: Sahabat Kebab', hasCoffee: false },
+            { id: 'p88', name: 'Beef Kebab Bolognese Sauce (S)', price: parsePrice('14k'), description: 'Vendor: Sahabat Kebab', hasCoffee: false },
+            { id: 'p89', name: 'Beef Kebab Spicy (S)', price: parsePrice('17k'), description: 'Vendor: Sahabat Kebab', hasCoffee: false },
+            { id: 'p90', name: 'Beef Kebab Creamy Cheese (S)', price: parsePrice('17k'), description: 'Vendor: Sahabat Kebab', hasCoffee: false },
+
+            // --- Silvia ---
+            { id: 'p91', name: 'Keripik singkong original', price: parsePrice('15k'), description: 'Vendor: Silvia', hasCoffee: false },
+            { id: 'p92', name: 'Keripik chuba balado', price: parsePrice('20k'), description: 'Vendor: Silvia', hasCoffee: false },
+            { id: 'p93', name: 'Keripik chuba keju', price: parsePrice('20k'), description: 'Vendor: Silvia', hasCoffee: false },
+            { id: 'p94', name: 'Jeruk selasih mint', price: parsePrice('12k'), description: 'Vendor: Silvia', hasCoffee: false },
+
         ];
         // =======================================================================================
         
@@ -314,6 +327,8 @@ const firebaseConfig = {
             'Transfer',
             'QRIS'
         ];
+
+        
         
         // Function to initialize Firebase
         async function initializeFirebase() {
@@ -344,17 +359,18 @@ const firebaseConfig = {
                         if (settingsSnap.exists()) {
                             storeSettings = settingsSnap.data();
                             const firebaseProducts = storeSettings.products || [];
-
-                            // --- LOGIC BARU: Jika produk di Firebase kosong, kita isi dengan daftar baru ini
-                            if (firebaseProducts.length === 0 && products.length > 0) {
-                                console.log("Mendeteksi produk baru di kode. Menyimpan daftar produk baru ke Firebase.");
-                                // Simpan daftar produk baru ini ke Firebase
-                                await setDoc(settingsDocRef, { products: products, storeOpen: true }, { merge: true });
+                            
+                            // *** FIX UTAMA: Pastikan daftar produk terlengkap yang digunakan ***
+                            if (products.length > firebaseProducts.length) {
+                                // Jika daftar lokal (dari kode) lebih panjang, gunakan itu dan paksa update ke Firebase
+                                console.log("Daftar produk kode lebih lengkap. Menyimpan yang baru ke Firebase.");
+                                await setDoc(settingsDocRef, { products: products, storeOpen: storeSettings.storeOpen || true }, { merge: true });
+                                // Setelah update, kita akan menggunakan daftar 'products' lokal yang sudah lengkap
                             } else if (firebaseProducts.length > 0) {
-                                // Jika sudah ada data di Firebase (dari aplikasi utama), kita gunakan itu
+                                // Jika Firebase memiliki daftar yang sama atau lebih lengkap, gunakan itu (misal sudah diupdate dari aplikasi utama)
                                 products = firebaseProducts; 
                             }
-                            // --- AKHIR LOGIC BARU ---
+                            // *** AKHIR FIX UTAMA ***
 
                         } else {
                             // Jika dokumen setting belum ada, buat dengan status Buka dan produk dari kode
@@ -383,6 +399,9 @@ const firebaseConfig = {
                 console.error("Gagal menginisialisasi Firebase:", e);
             }
         }
+
+        
+
 
         // --- View Rendering Functions ---
         function renderCustomerView() {
@@ -608,6 +627,71 @@ const firebaseConfig = {
             const productList = document.getElementById('product-list');
             const placeOrderButton = document.getElementById('place-order-button');
             const closedStoreMessage = document.getElementById('closed-store-message');
+
+            // --- LOGIC PERTAMA: TANGKAP ACCORDION YANG SEDANG TERBUKA ---
+            let currentlyExpandedIds = [];
+            // Hanya ambil ID dari elemen yang sedang terbuka sebelum UI di-render ulang
+            document.querySelectorAll('.accordion-header').forEach(header => {
+                const targetId = header.dataset.target; // e.g., #live-cooking-pin-kopi-body
+                const targetBody = document.querySelector(targetId);
+                // Cek apakah elemen ada dan tidak memiliki kelas 'hidden'
+                if (targetBody && !targetBody.classList.contains('hidden')) {
+                    currentlyExpandedIds.push(targetId);
+                }
+            });
+            // --- AKHIR LOGIKA PENANGKAPAN STATE ---
+            
+            // --- Helper function to extract Vendor Name (Lokal untuk Pengelompokan) ---
+            const extractVendorName = (product) => {
+                const vendorMatch = product.description.match(/Vendor: (.*)/);
+                return vendorMatch ? vendorMatch[1].split(' (')[0] : 'Lainnya';
+            };
+            // --- End Helper Function ---
+            
+            // --- Helper function to map product to the new Display Type (Lokal untuk Pengelompokan) ---
+            const mapProductToDisplayType = (product) => {
+                const vendorName = extractVendorName(product);
+                const name = product.name.toLowerCase();
+
+                // === 1. LIVE COOKING (By Vendor) ===
+                if (vendorName === 'Pin Kopi') return 'Live Cooking: Pin Kopi';
+                if (vendorName === 'SatSet Grill') return 'Live Cooking: SatSet Grill';
+                if (vendorName === 'Sahabat Kebab') return 'Live Cooking: Sahabat Kebab';
+
+                // === 2. PAKET (By Name/Vendor) ===
+                if (name.includes('paket manis') || name.includes('paket seger') || name.includes('paket wangi')) {
+                    return 'Paket Roti Daiki + Kopi Nong-Nong';
+                }
+                
+                // === 3. MASAKAN (Heavy Meals) ===
+                if (name.includes('nasi bakar') || name.includes('steik') || name.includes('spaghetti')) {
+                    return 'Masakan';
+                }
+                
+                // === 4. CEMILAN KRIUX (Crispy) ===
+                if (name.includes('lumpia sale') || name.includes('keripik')) {
+                    return 'Cemilan Kriux';
+                }
+                
+                // === 5. KUDAPAN ASIN (Savory Snacks/Light Meals) ===
+                if (name.includes('risoles') || name.includes('dimsum') || name.includes('cilok') || name.includes('batagor') || name.includes('shawarma') || name.includes('sandwich') || name.includes('chicken wings') || name.includes('kebab')) {
+                     return 'Kudapan Asin';
+                }
+
+                // === 6. MINUMAN & DESSERT (Beverages and cold desserts) ===
+                if (name.includes('jus') || name.includes('sago') || name.includes('salad buah') || name.includes('buko pandan') || name.includes('lemonite') || name.includes('es telang') || name.includes('selasih mint') || name.includes('matcha') || name.includes('coffee') || name.includes('latte') || name.includes('tea') || name.includes('karak chai')) {
+                    return 'Minuman & Dessert';
+                }
+
+                // === 7. KUDAPAN MANIS (Cakes, Donuts, Martabak, Roti) ===
+                const kudapanManisVendors = ['Ani KSF', 'Melisa', 'Yulia', 'Yasmin', 'Linda'];
+                if (kudapanManisVendors.includes(vendorName) || name.includes('klappertaart') || name.includes('soes') || name.includes('brownies') || name.includes('martabak') || name.includes('chiffon') || name.includes('roti')) {
+                     return 'Kudapan Manis';
+                }
+                
+                return 'Lain-lain'; // Default fallback
+            };
+            // --- End Helper Function ---
             
             // Check store status from Firebase settings
             const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings/store`);
@@ -636,64 +720,91 @@ const firebaseConfig = {
                  return;
             }
 
-            // Group products by vendor
+            // --- LOGIKA PENGELOMPOKAN BERDASARKAN TIPE TAMPILAN ---
             const groupedProducts = products.reduce((acc, product) => {
-                const vendorMatch = product.description.match(/Vendor: (.*)/);
-                const vendorName = vendorMatch ? vendorMatch[1].split(' (')[0] : 'Lainnya';
-                if (!acc[vendorName]) {
-                    acc[vendorName] = [];
+                // Menggunakan fungsi mapProductToDisplayType
+                const productType = mapProductToDisplayType(product); 
+                
+                if (!acc[productType]) {
+                    acc[productType] = [];
                 }
-                acc[vendorName].push(product);
+                acc[productType].push(product);
                 return acc;
             }, {});
 
             let productHtml = '';
-            let first = true;
+            
+            // Menentukan urutan Tipe berdasarkan permintaan (memindahkan Sahabat Kebab)
+            const typeOrder = [
+                'Live Cooking: Pin Kopi',
+                'Live Cooking: SatSet Grill',
+                'Live Cooking: Sahabat Kebab', // Pindah ke sini
+                'Paket Roti Daiki + Kopi Nong-Nong',
+                'Kudapan Manis',
+                'Masakan',
+                'Kudapan Asin',
+                'Cemilan Kriux',
+                'Minuman & Dessert',
+                'Lain-lain'
+            ];
+            
+            // Mengiterasi berdasarkan urutan yang sudah ditentukan
+            typeOrder.forEach(productType => {
+                if (groupedProducts[productType]) {
+                    const typeId = productType.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase(); // Membuat ID yang aman
+                    const targetBodyIdSelector = `#${typeId}-body`;
+                    
+                    // --- LOGIKA KEDUA: RESTORE STATE ---
+                    // Cek apakah Accordion ini harus terbuka (ada di array currentlyExpandedIds)
+                    const shouldExpand = currentlyExpandedIds.includes(targetBodyIdSelector);
+                    const isExpandedAttr = shouldExpand ? 'true' : 'false';
+                    // --- AKHIR LOGIKA RESTORE STATE ---
 
-            for (const vendorName in groupedProducts) {
-                const vendorId = vendorName.replace(/\s/g, '-').toLowerCase();
-                const isExpanded = first ? 'true' : 'false';
-                
-                productHtml += `
-                    <div class="rounded-xl shadow-md border border-gray-300 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
-                        <!-- Accordion Header (Vendor Name) -->
-                        <button class="accordion-header flex justify-between items-center w-full p-4 font-bold text-lg transition-colors duration-200 bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600"
-                            data-target="#${vendorId}-body" aria-expanded="${isExpanded}">
-                            <span>${vendorName}</span>
-                            <svg class="w-5 h-5 transition-transform duration-300 ${first ? 'transform rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-                        
-                        <!-- Accordion Body (Products) -->
-                        <div id="${vendorId}-body" class="accordion-body ${first ? '' : 'hidden'}" aria-labelledby="${vendorId}-header">
-                            <div class="p-4 space-y-4">
-                                ${groupedProducts[vendorName].map(product => {
-                                    const quantity = cart[product.id] ? cart[product.id].quantity : 0;
-                                    return `
-                                        <div class="flex justify-between items-center border-b pb-3 last:border-b-0 last:pb-0">
-                                            <div class="flex-grow">
-                                                <p class="font-semibold">${product.name}</p>
-                                                <p class="text-sm font-bold text-base mt-1 text-yellow-600 dark:text-yellow-400">Rp ${product.price.toLocaleString('id-ID')}</p>
+                    
+                    productHtml += `
+                        <div class="rounded-xl shadow-md border border-gray-300 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
+                            <!-- Accordion Header (Product Type) -->
+                            <button class="accordion-header flex justify-between items-center w-full p-4 font-bold text-lg transition-colors duration-200 bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600"
+                                data-target="${targetBodyIdSelector}" aria-expanded="${isExpandedAttr}">
+                                <span>${productType}</span>
+                                <svg class="w-5 h-5 transition-transform duration-300 ${shouldExpand ? 'transform rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            
+                            <!-- Accordion Body (Products) -->
+                            <div id="${typeId}-body" class="accordion-body ${shouldExpand ? '' : 'hidden'}" aria-labelledby="${typeId}-header">
+                                <div class="p-4 space-y-4">
+                                    ${groupedProducts[productType].map(product => {
+                                        const quantity = cart[product.id] ? cart[product.id].quantity : 0;
+                                        // Menggunakan extractVendorName untuk memastikan logika Accordion berjalan
+                                        const vendorData = extractVendorName(product); 
+                                        return `
+                                            <div class="flex justify-between items-center border-b pb-3 last:border-b-0 last:pb-0">
+                                                <div class="flex-grow">
+                                                    <p class="font-semibold">${product.name}</p>
+                                                    <!-- BARIS INI DIHAPUS: <p class="text-xs text-gray-500 dark:text-gray-400 mt-0">Vendor: ${vendorData}</p> -->
+                                                    <p class="text-sm font-bold text-base mt-1 text-yellow-600 dark:text-yellow-400">Rp ${product.price.toLocaleString('id-ID')}</p>
+                                                </div>
+                                                <div class="flex items-center space-x-2">
+                                                    <button data-id="${product.id}" class="minus-button bg-neutral-300 dark:bg-neutral-600 text-gray-800 dark:text-gray-200 font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
+                                                        -
+                                                    </button>
+                                                    <span class="quantity-display font-bold text-lg w-6 text-center">${quantity}</span>
+                                                    <button data-id="${product.id}" class="plus-button bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
+                                                        +
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div class="flex items-center space-x-2">
-                                                <button data-id="${product.id}" class="minus-button bg-neutral-300 dark:bg-neutral-600 text-gray-800 dark:text-gray-200 font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
-                                                    -
-                                                </button>
-                                                <span class="quantity-display font-bold text-lg w-6 text-center">${quantity}</span>
-                                                <button data-id="${product.id}" class="plus-button bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
-                                                    +
-                                                </button>
-                                            </div>
-                                        </div>
-                                    `;
-                                }).join('')}
+                                        `;
+                                    }).join('')}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
-                first = false;
-            }
+                    `;
+                }
+            });
+            // --- AKHIR LOGIKA PENGELOMPOKAN ---
 
             productList.innerHTML = productHtml;
 
@@ -711,6 +822,15 @@ const firebaseConfig = {
                     // Toggle arrow rotation
                     const arrow = header.querySelector('svg');
                     arrow.classList.toggle('rotate-180');
+                    
+                    // Logika tambahan untuk menutup yang lain (opsional, tapi sering digunakan)
+                    document.querySelectorAll('.accordion-body').forEach(body => {
+                        if (body.id !== targetBody.id && !body.classList.contains('hidden')) {
+                            body.classList.add('hidden');
+                            document.querySelector(`[data-target="#${body.id}"]`).setAttribute('aria-expanded', 'false');
+                            document.querySelector(`[data-target="#${body.id}"] svg`).classList.remove('rotate-180');
+                        }
+                    });
                 });
             });
 
@@ -763,8 +883,9 @@ const firebaseConfig = {
             let content = '';
             if (paymentMethod === 'QRIS') {
                 content = `
-                    <p class="font-bold text-lg mb-2">Scan untuk Bayar</p>
-                    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCasssXDfDwY5JY1YgVuuHIoSk0Xl0PPy5xdfl3cFsRnYC0euhgylGONrXhl2L653RI3IKl5faxwfovcpXqi7hwSOOiytvZO7-rwtKvBOuB1BG0AIVEqatnKRPjJ5vbJHIkRM76OHj4FpKhSvG-XMAXVhnWRuQFk8m0GU0WDmE7g531Ge5MzyldTxjdIs/s375/Qris%20Masakin.jpg" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <p class="font-bold text-lg mb-2">Detail Pembayaran QRIS</p>
+                    <p class="mb-2">Scan untuk Bayar</p>
+                    <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCasssXDfDwY5JY1YgVuuHIoSk0Xl0PPy5xdfl3cFsRnYC0euhgylGONrXhl2L653IKl5faxwfovcpXqi7hwSOOiytvZO7-rwtKvBOuB1BG0AIVEqatnKRPjJ5vbJHIkRM76OHj4FpKhSvG-XMAXVhnWRuQFk8m0GU0WDmE7g531Ge5MzyldTxjdIs/s375/Qris%20Masakin.jpg" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
                     <div class="hidden text-xs text-center text-gray-600 dark:text-gray-400 mt-2">Gambar QRIS tidak dapat dimuat.</div>
                 `;
             } else if (paymentMethod === 'Transfer') {
@@ -961,8 +1082,18 @@ const firebaseConfig = {
                     for (const productId in order.items) {
                         const item = order.items[productId];
                         const product = products.find(p => p.id === productId);
+                        
                         if (product) {
-                            itemsHtml += `<li>${product.name} x ${item.quantity}</li>`;
+                            const subtotal = product.price * item.quantity;
+                            itemsHtml += `
+                                <li class="flex justify-between items-center">
+                                    <span>${product.name} x ${item.quantity}</span>
+                                    <div>
+                                        <span class="text-xs text-gray-600 dark:text-gray-400 mr-2">(Rp ${product.price.toLocaleString('id-ID')})</span>
+                                        <span class="font-medium">Rp ${subtotal.toLocaleString('id-ID')}</span>
+                                    </div>
+                                </li>
+                            `;
                         }
                     }
 
@@ -973,7 +1104,7 @@ const firebaseConfig = {
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Metode Pembayaran: ${order.paymentMethod}</p>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Pelanggan ID: ${order.customerId.substring(0, 5)}</p>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Tanggal: ${orderDate}</p>
-                        <ul class="list-disc list-inside mb-4">${itemsHtml}</ul>
+                        <ul class="list-none space-y-1 mb-4 text-sm">${itemsHtml}</ul>
                         <p class="font-bold text-lg mb-4">Total: Rp ${total}</p>
                         <p class="font-semibold text-sm mb-2">Status: ${order.status === 'completed' ? '✅ Pembayaran Diterima' : '⏳ Menunggu Konfirmasi'}</p>
                         ${order.status !== 'completed' ? `<button data-id="${doc.id}" class="complete-order-button bg-neutral-800 hover:bg-neutral-900 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm w-full mb-2">Tandai Selesai</button>` : ''}
@@ -1034,6 +1165,13 @@ const firebaseConfig = {
                     recapList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Belum ada pesanan.</p>`;
                     return;
                 }
+                
+                // --- Helper function to extract Vendor Name (Lokal untuk Rekap) ---
+                const extractVendorName = (product) => {
+                    const vendorMatch = product.description.match(/Vendor: (.*)/);
+                    return vendorMatch ? vendorMatch[1].split(' (')[0] : 'Lainnya';
+                };
+                // --- End Helper Function ---
 
                 snapshot.forEach(doc => {
                     const order = doc.data();
@@ -1044,8 +1182,8 @@ const firebaseConfig = {
                         const product = products.find(p => p.id === productId);
 
                         if (product) {
-                            const vendorMatch = product.description.match(/Vendor: (.*)/);
-                            const vendorName = vendorMatch ? vendorMatch[1].split(' (')[0] : 'Lainnya'; // Extract Vendor Name
+                            // Ekstraksi Vendor Name (Logika ini tetap utuh untuk Rekapitulasi)
+                            const vendorName = extractVendorName(product);
                             
                             // Initialize vendor entry if it doesn't exist
                             if (!vendorRecap[vendorName]) {
@@ -1175,15 +1313,27 @@ const firebaseConfig = {
                     for (const productId in order.items) {
                         const item = order.items[productId];
                         const product = products.find(p => p.id === productId);
+                        
                         if (product) {
-                            itemsHtml += `<li>${product.name} x ${item.quantity}</li>`;
+                            const subtotal = product.price * item.quantity;
+                            itemsHtml += `
+                                <li class="flex justify-between">
+                                    <span>${product.name} x ${item.quantity}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">(Rp ${product.price.toLocaleString('id-ID')} / item)</span>
+                                    <span class="font-medium">Rp ${subtotal.toLocaleString('id-ID')}</span>
+                                </li>
+                            `;
                         }
                     }
 
                     orderItem.innerHTML = `
                         <p class="font-bold text-lg mb-2">Pesanan #${doc.id.substring(0, 8)}</p>
-                        <ul class="list-disc list-inside mb-4">${itemsHtml}</ul>
-                        <p class="font-bold text-lg mb-4">Total: Rp ${total}</p>
+                        <ul class="list-none space-y-1 mb-4 text-sm">${itemsHtml}</ul>
+                        <hr class="my-3 border-gray-300 dark:border-gray-700"/>
+                        <p class="font-bold text-lg mb-4 flex justify-between">
+                            <span>Total Pesanan:</span>
+                            <span>Rp ${total}</span>
+                        </p>
                         <p class="font-semibold text-sm mb-2">Status: ${order.status === 'completed' ? '✅ Pembayaran Diterima' : '⏳ Menunggu Konfirmasi'}</p>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Tanggal: ${orderDate}</p>
                     `;

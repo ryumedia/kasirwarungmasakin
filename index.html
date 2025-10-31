@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KASIR Warung Masakin</title>
+    <title>Aplikasi Kasir Mobile</title>
     <!-- Memuat Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -68,7 +68,7 @@
         <!-- Header Aplikasi -->
         <header class="p-4 bg-indigo-600 text-white shadow-lg sticky top-0 z-10">
             <h1 class="text-xl font-bold flex items-center">
-                <i class="ph-fill ph-storefront text-2xl mr-2"></i> KASIR Warung Masakin
+                <i class="ph-fill ph-storefront text-2xl mr-2"></i> Aplikasi Kasir
             </h1>
             <!-- ID Transaksi telah dihapus dari sini -->
         </header>
@@ -579,13 +579,23 @@
                 return;
             }
 
-            productGridEl.innerHTML = filteredProducts.map(p => `
-                <button data-product-id="${p.id}" class="add-product-btn p-3 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center text-center">
-                    <i class="ph-duotone ph-cup text-3xl text-indigo-500 mb-1"></i>
-                    <span class="text-sm font-semibold text-gray-800 line-clamp-2">${p.name}</span>
-                    <span class="text-xs text-green-600 mt-1 font-bold">${formatRupiah(p.price)}</span>
-                </button>
-            `).join(''); 
+            productGridEl.innerHTML = filteredProducts.map(p => {
+                // START: LOGIKA BARU UNTUK PERSISTENT HIGHLIGHT
+                const isInCart = cart.some(item => String(item.product_id) === String(p.id)); 
+                
+                const cardClasses = isInCart 
+                    ? 'bg-indigo-100 ring-2 ring-indigo-500 shadow-md' // Kelas highlight biru
+                    : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'; // Kelas default
+                // END: LOGIKA BARU UNTUK PERSISTENT HIGHLIGHT
+                
+                return `
+                    <button data-product-id="${p.id}" class="add-product-btn p-3 ${cardClasses} transition-all duration-200 flex flex-col items-center justify-center text-center">
+                        <i class="ph-duotone ph-cup text-3xl text-indigo-500 mb-1"></i>
+                        <span class="text-sm font-semibold text-gray-800 line-clamp-2">${p.name}</span>
+                        <span class="text-xs text-green-600 mt-1 font-bold">${formatRupiah(p.price)}</span>
+                    </button>
+                `;
+            }).join(''); 
         };
 
         /** Mengupdate UI Keranjang dan Total */
@@ -622,6 +632,9 @@
 
             grandTotalEl.textContent = formatRupiah(total);
             updateCheckoutButtonState(); // Panggil fungsi cek status
+            
+            // BARU DITAMBAHKAN: Memastikan grid produk diperbarui setelah keranjang berubah
+            renderProducts(); 
         };
 
         /** Proses Checkout dan Menyimpan ke Supabase */
@@ -817,6 +830,7 @@
                 if (target.classList.contains('add-product-btn') && productId) {
                     console.log(`[DEBUG] Tombol Produk diklik, ID: ${productId}`); 
                     addProductToCart(productId);
+                    // Kode highlight manual telah dihapus karena sekarang ditangani oleh renderProducts() di dalam updateCartUI()
                 } 
                 
                 // Mengubah Kuantitas di Keranjang

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Kasir Mobile</title>
+    <title>Kasir Warung Masakin</title>
     <!-- Memuat Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -68,7 +68,7 @@
         <!-- Header Aplikasi -->
         <header class="p-4 bg-indigo-600 text-white shadow-lg sticky top-0 z-10">
             <h1 class="text-xl font-bold flex items-center">
-                <i class="ph-fill ph-storefront text-2xl mr-2"></i> Aplikasi Kasir
+                <i class="ph-fill ph-storefront text-2xl mr-2"></i> Kasir Warung Masakin
             </h1>
             <!-- ID Transaksi telah dihapus dari sini -->
         </header>
@@ -204,9 +204,14 @@
 
     <script>
         // LOKASI PENAMBAHAN: Konfigurasi dan Inisialisasi Supabase
-        // GANTI DENGAN KUNCI DAN URL ASLI ANDA
-        const SUPABASE_URL = 'https://drfdjznyikcsercajaek.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRyZmRqem55aWtjc2VyY2FqYWVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMTkyNTMsImV4cCI6MjA3NTU5NTI1M30.D2tbT9xTSblfG2Cvy4FEpZM5iqOr7FfMaIt6A-8Msuk';
+        // *************************************************************************************
+        // PENTING: HARUS GANTI DENGAN KREDENSIAL PROYEK SUPABASE ANDA!
+        // Kesalahan 'Invalid supabaseUrl' muncul karena ini masih berupa teks placeholder.
+        // Ganti 'GANTI_DENGAN_SUPABASE_URL_ANDA' dengan URL proyek Supabase Anda (misal: 'https://xyz123.supabase.co')
+        // Ganti 'GANTI_DENGAN_SUPABASE_ANON_KEY_ANDA' dengan Anon Key Anda
+        // *************************************************************************************
+        const SUPABASE_URL = 'https://drfdjznyikcsercajaek.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRyZmRqem55aWtjc2VyY2FqYWVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMTkyNTMsImV4cCI6MjA3NTU5NTI1M30.D2tbT9xTSblfG2Cvy4FEpZM5iqOr7FfMaIt6A-8Msuk'; 
         
         // ID PELANGGAN DEFAULT (sesuai permintaan)
         const DEFAULT_CUSTOMER_ID = '9029da8a-cd47-4634-bde6-b2459750ae42';
@@ -216,9 +221,9 @@
 
         // Data Aplikasi
         let products = []; 
-        let cart = []; // Keranjang sekarang akan menyimpan objek dengan properti: product_id, product_name, price, category, quantity
-        // currentTransactionId telah dihapus
-        let productTypes = []; 
+        // Keranjang sekarang menyimpan kedua nilai: 'category' (untuk persistence) dan 'type' (untuk display)
+        let cart = []; 
+        let productTypes = []; // Akan diisi dari kolom 'type'
         let selectedType = 'all'; 
         
         let selectedCustomerId = DEFAULT_CUSTOMER_ID; 
@@ -232,7 +237,6 @@
 
         // Referensi DOM
         let cartListEl, grandTotalEl, emptyMessageEl, checkoutButtonEl;
-        // transactionIdEl telah dihapus
         let productGridEl, checkoutModalEl, modalTotalEl, loadingMessageEl, typeFilterEl; 
         let customerNameEl, registeredCustomerBtnEl, generalCustomerBtnEl, customerModalEl, customerListEl, modalCustomerNameEl; 
         let confirmCustomerBtnEl;
@@ -251,8 +255,6 @@
             }).format(number);
         };
         
-        // Fungsi generateTransactionId telah dihapus
-
         /** Mengaktifkan/nonaktifkan tombol checkout */
         const updateCheckoutButtonState = () => {
             if (!checkoutButtonEl) return;
@@ -450,9 +452,10 @@
             if (loadingMessageEl) loadingMessageEl.classList.remove('hidden');
             
             try {
+                // PERBAIKAN: Ambil kolom 'category' (untuk persistence) DAN 'type' (untuk filtering UI)
                 const { data, error } = await supabaseClient 
                     .from('products') 
-                    .select('id, name, price, type'); // type akan digunakan sebagai category
+                    .select('id, name, price, category, type'); // Mengambil kedua kolom
 
                 if (loadingMessageEl) loadingMessageEl.classList.add('hidden');
 
@@ -466,12 +469,16 @@
                     id: p.id,
                     name: p.name,
                     price: p.price || 0, 
-                    type: p.type || 'Lainnya' // Digunakan sebagai category
+                    // Nilai untuk dikirim ke orders.items
+                    category: p.category || 'Lainnya', 
+                    // Nilai untuk filtering di UI
+                    type: p.type || 'Lainnya' 
                 }));
                 
-                console.log(`[DEBUG] Produk berhasil dimuat: ${products.length} item.`); // Log sukses muat data
+                console.log(`[DEBUG] Produk berhasil dimuat: ${products.length} item.`); 
 
-                const uniqueTypes = [...new Set(products.map(p => p.type).filter(Boolean))];
+                // LOGIKA: Gunakan properti 'type' untuk membuat daftar tipe unik (dropdown filter)
+                const uniqueTypes = [...new Set(products.map(p => p.type).filter(Boolean))]; 
                 productTypes = uniqueTypes.sort(); 
 
             } catch (err) {
@@ -494,9 +501,10 @@
                 <option value="all">Semua Tipe</option>
             `;
 
+            // Opsi dibuat berdasarkan kolom 'type'
             optionsHtml += productTypes.map(type => `
                 <option value="${type}" ${selectedType === type ? 'selected' : ''}>
-                    ${type}
+                    ${type.charAt(0).toUpperCase() + type.slice(1)} <!-- Kapitalisasi hanya untuk tampilan di dropdown -->
                 </option>
             `).join('');
 
@@ -511,7 +519,7 @@
         
         /** Menambahkan/mengupdate produk ke keranjang */
         const addProductToCart = (productId) => {
-            // PERBAIKAN: Menggunakan String(p.id) untuk memastikan perbandingan tipe data string vs string
+            // Memastikan perbandingan tipe data string vs string
             const product = products.find(p => String(p.id) === productId); 
             
             if (!product) {
@@ -519,33 +527,32 @@
                  return;
             }
 
-            // MENGGUNAKAN product_id dan quantity SESUAI PERMINTAAN JSONB
             const existingItem = cart.find(item => String(item.product_id) === productId); 
 
             if (existingItem) {
-                existingItem.quantity++; // UBAH dari qty
+                existingItem.quantity++; 
             } else {
                 cart.push({
-                    product_id: product.id, // SESUAI PERMINTAAN
-                    product_name: product.name, // SESUAI PERMINTAAN
+                    product_id: product.id, 
+                    product_name: product.name, 
                     price: product.price,
-                    category: product.type, // SESUAI PERMINTAAN (menggunakan field 'type')
-                    quantity: 1 // UBAH dari qty
+                    // PENTING: Untuk persistence (orders.items) menggunakan kolom 'category'
+                    category: product.category, 
+                    quantity: 1 
                 });
             }
-            console.log(`[DEBUG] Produk ${product.name} berhasil ditambahkan/diperbarui.`);
+            console.log(`[DEBUG] Produk ${product.name} (Cat: ${product.category}, Type: ${product.type}) berhasil ditambahkan/diperbarui.`);
             updateCartUI();
         };
 
         /** Mengubah kuantitas item di keranjang */
         const changeItemQuantity = (productId, change) => {
-            // Menggunakan product_id untuk perbandingan yang konsisten
-            const itemIndex = cart.findIndex(item => String(item.product_id) === productId); // UBAH dari id
+            const itemIndex = cart.findIndex(item => String(item.product_id) === productId); 
 
             if (itemIndex > -1) {
-                cart[itemIndex].quantity += change; // UBAH dari qty
+                cart[itemIndex].quantity += change; 
 
-                if (cart[itemIndex].quantity <= 0) { // UBAH dari qty
+                if (cart[itemIndex].quantity <= 0) { 
                     cart.splice(itemIndex, 1); // Hapus jika kuantitas <= 0
                 }
             }
@@ -554,7 +561,6 @@
 
         /** Menghitung total belanja */
         const calculateTotal = () => {
-            // Menggunakan item.quantity untuk perhitungan total
             return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         };
 
@@ -566,6 +572,7 @@
                 return;
             }
 
+            // LOGIKA FILTER: Memfilter menggunakan properti internal 'type'
             const filteredProducts = selectedType === 'all'
                 ? products
                 : products.filter(p => p.type === selectedType);
@@ -580,13 +587,12 @@
             }
 
             productGridEl.innerHTML = filteredProducts.map(p => {
-                // START: LOGIKA BARU UNTUK PERSISTENT HIGHLIGHT
+                // LOGIKA BARU UNTUK PERSISTENT HIGHLIGHT
                 const isInCart = cart.some(item => String(item.product_id) === String(p.id)); 
                 
                 const cardClasses = isInCart 
                     ? 'bg-indigo-100 ring-2 ring-indigo-500 shadow-md' // Kelas highlight biru
                     : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'; // Kelas default
-                // END: LOGIKA BARU UNTUK PERSISTENT HIGHLIGHT
                 
                 return `
                     <button data-product-id="${p.id}" class="add-product-btn p-3 ${cardClasses} transition-all duration-200 flex flex-col items-center justify-center text-center">
@@ -612,20 +618,21 @@
             cartListEl.innerHTML = cart.map(item => `
                 <div class="flex items-center justify-between p-2 bg-indigo-50">
                     <div class="flex-1 min-w-0 mr-2">
-                        <span class="font-medium text-gray-800 block truncate">${item.product_name}</span> <!-- UBAH dari item.name -->
-                        <span class="text-xs text-gray-500">${formatRupiah(item.price)} x ${item.quantity}</span> <!-- UBAH dari item.qty -->
+                        <span class="font-medium text-gray-800 block truncate">${item.product_name}</span> 
+                        <!-- Tampilkan 'type' di keranjang untuk konsistensi filter UI -->
+                        <span class="text-xs text-gray-500">${formatRupiah(item.price)} x ${item.quantity} (Tipe: ${item.type})</span> 
                     </div>
                     <div class="flex items-center space-x-1">
-                        <button data-id="${item.product_id}" data-change="-1" class="qty-change-btn p-1 text-sm bg-indigo-200 text-indigo-700 hover:bg-indigo-300 transition"> <!-- UBAH dari item.id -->
+                        <button data-id="${item.product_id}" data-change="-1" class="qty-change-btn p-1 text-sm bg-indigo-200 text-indigo-700 hover:bg-indigo-300 transition"> 
                              <i class="ph ph-minus text-base"></i>
                         </button>
-                        <span class="w-6 text-center text-sm font-semibold">${item.quantity}</span> <!-- UBAH dari item.qty -->
-                        <button data-id="${item.product_id}" data-change="1" class="qty-change-btn p-1 text-sm bg-indigo-500 text-white hover:bg-indigo-600 transition"> <!-- UBAH dari item.id -->
+                        <span class="w-6 text-center text-sm font-semibold">${item.quantity}</span> 
+                        <button data-id="${item.product_id}" data-change="1" class="qty-change-btn p-1 text-sm bg-indigo-500 text-white hover:bg-indigo-600 transition"> 
                             <i class="ph ph-plus text-base"></i>
                         </button>
                     </div>
                     <div class="ml-3 text-right">
-                        <span class="font-bold text-sm text-indigo-700">${formatRupiah(item.price * item.quantity)}</span> <!-- UBAH dari item.qty -->
+                        <span class="font-bold text-sm text-indigo-700">${formatRupiah(item.price * item.quantity)}</span> 
                     </div>
                 </div>
             `).join('');
@@ -633,7 +640,7 @@
             grandTotalEl.textContent = formatRupiah(total);
             updateCheckoutButtonState(); // Panggil fungsi cek status
             
-            // BARU DITAMBAHKAN: Memastikan grid produk diperbarui setelah keranjang berubah
+            // Memastikan grid produk diperbarui setelah keranjang berubah
             renderProducts(); 
         };
 
@@ -652,7 +659,6 @@
 
 
             // 1. Dapatkan detail Pelanggan dari Supabase berdasarkan ID
-            // Asumsi: tabel 'users' memiliki kolom full_name, email, dan phone_number
             const { data: customerDetails, error: customerError } = await supabaseClient
                 .from('users')
                 .select('full_name, email, phone_number') 
@@ -676,31 +682,35 @@
             }
 
             // 2. Persiapkan data Order, MENGGUNAKAN DETAIL PELANGGAN LENGKAP
+            // >>>>>>>>>>> LOKASI KERANJANG DISIAPKAN UNTUK DIKIRIM (Baris 715) <<<<<<<<<<<<
             const orderData = {
                 // Customer Details diambil dari fetch
                 user_id: selectedCustomerId,
-                customer_name: customerDetails.full_name || selectedCustomerName, // Ambil nama dari data fetch, fallback ke nama tampilan
+                customer_name: customerDetails.full_name || selectedCustomerName, 
                 customer_email: customerDetails.email || 'N/A', 
                 customer_phone: customerDetails.phone_number || 'N/A', 
                 
                 // Order & Status Details
-                total_amount: total, // Kolom ini sudah ada dari sebelumnya (mungkin digunakan di tabel)
-                total: total,       // PERUBAHAN BARU: Menambahkan kolom 'total' sesuai permintaan (Numeric)
+                total_amount: total, 
+                total: total,      
                 payment_method: selectedPaymentMethod,
                 payment_status: 'paid', 
                 
-                // PERUBAHAN KRITIS: Kirim array JavaScript 'cart' secara langsung
-                // Supabase akan menyimpannya sebagai JSONB yang sesuai dengan format yang diminta
+                // PENTING: array 'cart' (data keranjang) dikirim ke Supabase
+                // Pastikan kolom 'items' di tabel 'orders' bertipe JSONB/ARRAY
                 items: cart, 
             };
+            // >>>>>>>>>>> AKHIR LOKASI KERANJANG DISIAPKAN (Baris 728) <<<<<<<<<<<<
             
             console.log("Mencoba menyimpan Order dengan payload:", orderData);
             
             // 3. Kirim data Order ke tabel 'orders'
+            // >>>>>>>>>>> LOKASI PENGIRIMAN DATA KE SUPABASE (Baris 735) <<<<<<<<<<<<
             const { data: orderResponse, error: orderError } = await supabaseClient
                 .from('orders')
                 .insert([orderData])
                 .select(); 
+            // >>>>>>>>>>> AKHIR LOKASI PENGIRIMAN DATA (Baris 740) <<<<<<<<<<<<
             
             let success = true;
             let errorMessage = '';
@@ -720,7 +730,7 @@
                 checkoutFailEl.classList.add('hidden');
                 
                 modalTotalEl.textContent = formatRupiah(total);
-                modalCustomerNameEl.textContent = customerDetails.full_name || selectedCustomerName; // Gunakan nama yang dikirim
+                modalCustomerNameEl.textContent = customerDetails.full_name || selectedCustomerName; 
                 modalPaymentMethodEl.textContent = selectedPaymentMethod; 
 
             } else {
@@ -732,7 +742,7 @@
             
             // Kembalikan tombol ke keadaan normal sebelum modal ditutup
             checkoutButtonEl.disabled = false;
-            updateCheckoutButtonState(); // Panggil untuk memperbarui teks tombol
+            updateCheckoutButtonState(); 
 
             checkoutModalEl.classList.remove('hidden');
         };
@@ -744,10 +754,8 @@
             checkoutModalEl.classList.add('hidden');
             if (reset) {
                 cart = [];
-                // Logika ID Transaksi telah dihapus
-                selectedPaymentMethod = null; // Reset metode pembayaran
+                selectedPaymentMethod = null; 
                 
-                // Tambahkan setCustomer ke default saat reset
                 fetchDefaultCustomer(); 
                 
                 updateCartUI();
@@ -761,7 +769,6 @@
             grandTotalEl = document.getElementById('grand-total');
             emptyMessageEl = document.getElementById('empty-cart-message');
             checkoutButtonEl = document.getElementById('checkout-button');
-            // transactionIdEl telah dihapus
             productGridEl = document.getElementById('product-grid');
             checkoutModalEl = document.getElementById('checkout-modal');
             modalTotalEl = document.getElementById('modal-total');
@@ -818,7 +825,7 @@
                 if (!target) return;
 
                 const productId = target.getAttribute('data-product-id'); 
-                const itemId = target.getAttribute('data-id'); // Menggunakan data-id untuk product_id item keranjang
+                const itemId = target.getAttribute('data-id'); 
                 const change = parseInt(target.getAttribute('data-change'));
                 
                 const customerId = target.getAttribute('data-customer-id');
@@ -830,7 +837,6 @@
                 if (target.classList.contains('add-product-btn') && productId) {
                     console.log(`[DEBUG] Tombol Produk diklik, ID: ${productId}`); 
                     addProductToCart(productId);
-                    // Kode highlight manual telah dihapus karena sekarang ditangani oleh renderProducts() di dalam updateCartUI()
                 } 
                 
                 // Mengubah Kuantitas di Keranjang
@@ -855,9 +861,6 @@
             });
 
             // 3. Inisialisasi Data
-            // Logika inisialisasi ID Transaksi telah dihapus untuk meringkas kode
-            
-            // 4. Muat Data Produk dan Pelanggan Default secara Asinkron
             fetchProducts(); 
             fetchDefaultCustomer(); // Memastikan customer default dimuat
         });

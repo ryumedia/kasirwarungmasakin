@@ -3,1415 +3,851 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikasi Pemesanan Sederhana</title>
+    <title>KASIR Warung Masakin</title>
+    <!-- Memuat Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Memuat Phosphor Icons untuk ikon -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Memuat Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Latar belakang abu-abu muda */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
-        .modal-overlay {
-            background-color: rgba(0, 0, 0, 0.5);
+        /* Kontainer Utama - Mensimulasikan rasio 9:16 pada perangkat seluler */
+        .mobile-container {
+            width: 100%;
+            max-width: 400px; /* Lebar maksimal ponsel */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            position: relative;
+        }
+        @media (min-height: 800px) {
+            .mobile-container {
+                min-height: 720px; /* Fixed height for better simulation */
+                aspect-ratio: 9/16; /* For desktop viewing simulation */
+            }
+        }
+        /* Custom scrollbar style */
+        .product-grid-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .product-grid-container::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1; /* slate-300 */
+            border-radius: 0; /* Dibuat persegi */
+        }
+        .product-grid-container::-webkit-scrollbar-track {
+            background-color: #f8fafc; /* slate-50 */
+        }
+        /* Menghapus semua border-radius untuk tampilan persegi penuh */
+        .mobile-container, button, div, select {
+            border-radius: 0 !important; 
+        }
+        
+        /* Tambahkan style untuk visual focus yang lebih baik pada dropdown */
+        #type-filter:focus {
+            outline: 2px solid #4f46e5; /* indigo-600 */
+            outline-offset: -2px;
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4 text-gray-900 dark:text-gray-100">
+<body class="p-4">
 
-    <!-- Main Application Container -->
-    <div id="app-container" class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg w-full max-w-lg">
-        <!-- The UI will be dynamically rendered here by JavaScript -->
-        <div id="ui-content" class="min-h-[400px]">
-            <p class="text-center text-gray-500 dark:text-gray-400">Memuat antarmuka pengguna...</p>
-        </div>
-    </div>
+    <div id="app" class="mobile-container overflow-hidden">
+        <!-- Header Aplikasi -->
+        <header class="p-4 bg-indigo-600 text-white shadow-lg sticky top-0 z-10">
+            <h1 class="text-xl font-bold flex items-center">
+                <i class="ph-fill ph-storefront text-2xl mr-2"></i> KASIR Warung Masakin
+            </h1>
+            <!-- ID Transaksi telah dihapus dari sini -->
+        </header>
 
-    <!-- Modal Konfirmasi Pesanan (hidden by default) -->
-    <div id="order-success-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
-        <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm mx-4 text-center">
-            <h2 class="text-2xl font-bold mb-4 text-green-600">Pesanan Berhasil!</h2>
-            <p class="mb-6">Pesanan Anda telah berhasil dibuat. Silakan cek riwayat pesanan Anda.</p>
-            <button id="close-order-success-modal" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
-                Tutup
-            </button>
-        </div>
-    </div>
+        <!-- Area Konten Utama (Produk & Keranjang) -->
+        <div class="flex-grow flex flex-col overflow-hidden">
 
-    <!-- Modal Login Admin (hidden by default) -->
-    <div id="admin-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
-        <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm mx-4">
-            <h2 class="text-2xl font-bold text-center mb-4">Masuk sebagai Admin</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="admin-id-input" class="block text-sm font-medium mb-1">ID Admin:</label>
-                    <input type="text" id="admin-id-input" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" placeholder="Admin" />
+            <!-- 1. Daftar Produk (Scrollable - 60% Area) -->
+            <div class="product-grid-container p-4 overflow-y-auto flex-1 h-3/5">
+                <!-- DROP DOWN FILTER TIPE -->
+                <div class="mb-4">
+                    <label for="type-filter" class="text-sm font-medium text-gray-600 block mb-1">Pilih Tipe Produk:</label>
+                    <select id="type-filter" class="w-full p-2 border border-gray-300 bg-white text-gray-800 shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <!-- Opsi akan dirender di sini oleh JS -->
+                    </select>
                 </div>
-                <div>
-                    <label for="admin-code-input" class="block text-sm font-medium mb-1">Kode Admin:</label>
-                    <input type="password" id="admin-code-input" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" placeholder="****" />
-                </div>
-                <div id="login-message" class="text-sm text-center"></div>
-                <button id="login-submit-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
-                    Masuk
-                </button>
-                <button id="close-admin-modal" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded-md transition-colors duration-200">
-                    Tutup
-                </button>
-            </div>
-        </div>
-    </div>
+                <!-- AKHIR DROP DOWN FILTER TIPE -->
 
-    <!-- Modal User Orders (hidden by default) -->
-    <div id="user-orders-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
-        <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold">Riwayat Pesanan Anda</h2>
-                <button id="show-payment-info" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
-                    Cara Bayar
-                </button>
-            </div>
-            <div id="user-orders-list" class="space-y-4 mb-4">
-                <p class="text-center text-gray-500 dark:text-gray-400">Memuat riwayat pesanan...</p>
-            </div>
-            <button id="close-user-orders-modal" class="w-full bg-neutral-800 hover:bg-neutral-900 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
-                Tutup
-            </button>
-        </div>
-    </div>
-
-    <!-- Modal Payment Info (new) -->
-    <div id="payment-info-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
-        <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-sm mx-4 max-h-[80vh] overflow-y-auto">
-            <h2 class="text-2xl font-bold text-center mb-4">Informasi Pembayaran</h2>
-            <div class="space-y-6">
-                <!-- Tab Tunai -->
-                <div id="payment-tunai-info">
-                    <h3 class="text-xl font-bold mb-2">Tunai</h3>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Pembayaran dilakukan secara tunai saat pesanan diterima.</p>
-                </div>
-                <!-- Tab Transfer -->
-                <div id="payment-transfer-info">
-                    <h3 class="text-xl font-bold mb-2">Transfer</h3>
-                    <p class="text-sm">Bank: Bank Syariah Indonesia (BSI)</p>
-                    <p class="text-sm">No.Rek: 7292519928</p>
-                    <p class="text-sm">a.n: Irianti Mega</p>
-                </div>
-                <!-- Tab QRIS -->
-                <div id="payment-qris-info">
-                    <h3 class="text-xl font-bold mb-2">QRIS</h3>
-                    <p class="mb-2">Scan untuk Bayar</p>
-                    <!-- Updated QRIS Image -->
-                    <!-- Placeholder URL. Ganti dengan URL gambar QRIS Anda yang diupload ke layanan hosting stabil. -->
-                    <img id="qris-image" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEix2mSsqdzHU-64FJnQ1RmBtwphkVLi9qjNaBr1nxyxU6CWCjAqRgVm-wg6TGO7tTaYWuKAiOckn0HarjAOJ88CNW6EF3q3ZZkOPUdC1GzQ6ZVXtb3Ic_nLn7dSUI_GZPtWvnxcgG__E8kJX6O_AkIq9eJl35PadLdt8cN6I6t9-W2xeCXkOR05N1jTB-w/s630/Qris%20Masakin.jpg" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto">
-                    <div class="hidden text-xs text-center text-gray-600 dark:text-gray-400 mt-2">Gambar QRIS tidak dapat dimuat.</div>
+                <div id="product-grid" class="grid grid-cols-2 gap-3">
+                    <!-- Produk akan dirender di sini oleh JS -->
+                    <p id="loading-message" class="col-span-2 text-center text-gray-500">Memuat data produk...</p>
                 </div>
             </div>
-            <button id="close-payment-info-modal" class="w-full mt-6 bg-neutral-800 hover:bg-neutral-900 text-white font-semibold py-2 px-4 rounded-md transition-colors duration-200">
-                Tutup
-            </button>
-        </div>
-    </div>
 
-    <!-- Status feedback message (new) -->
-    <div id="status-message" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg hidden">
-        Harga berhasil disimpan!
-    </div>
-    
-    <script type="module">
-        // Import Firebase libraries harus di level teratas dari script module
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, updateDoc, doc, where, getDoc, setDoc, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+            <!-- 2. Ringkasan Keranjang (Fixed Area - 40% Area) -->
+            <div class="p-4 border-t-4 border-indigo-100 bg-white shadow-2xl h-2/5 flex flex-col">
+                <h2 class="text-lg font-semibold mb-3 text-gray-700">Keranjang Pesanan</h2>
 
-        // Global variables provided by the Canvas environment
-        const appId = 'default-app-id'; // This ID is used for the database path and should be a unique identifier for your app
-
-        // =======================================================================================
-        // PASTE KONFIGURASI FIREBASE ANDA DI SINI
-        // PENTING: Ganti objek 'firebaseConfig' di bawah ini dengan konfigurasi pribadi Anda
-        // dari konsol Firebase. Ini adalah penyebab error yang Anda alami.
-        // =======================================================================================
-        const firebaseConfig = {
-          apiKey: "AIzaSyDO6OaqmYpAWfOmtsRg_g1yC_WO2J2gXOI",
-          authDomain: "test-project-dc4c4.firebaseapp.com",
-          projectId: "test-project-dc4c4",
-          storageBucket: "test-project-dc4c4.firebasestorage.app",
-          messagingSenderId: "42493897694",
-          appId: "1:42493897694:web:a29260c37485c02ccb8b4f",
-          measurementId: "G-3BDGHJR2LT"
-        };
-        // =======================================================================================
-        
-        const initialAuthToken = null; // Ini hanya digunakan untuk lingkungan khusus
-
-        // Hardcoded admin credentials for demonstration
-        const ADMIN_ID = 'Admin';
-        const ADMIN_CODE = '4567';
-
-        // Get DOM elements
-        const uiContent = document.getElementById('ui-content');
-        const adminModal = document.getElementById('admin-modal');
-        const adminIdInput = document.getElementById('admin-id-input');
-        const adminCodeInput = document.getElementById('admin-code-input');
-        const loginSubmitButton = document.getElementById('login-submit-button');
-        const loginMessage = document.getElementById('login-message');
-        const closeAdminModalButton = document.getElementById('close-admin-modal');
-        const userOrdersModal = document.getElementById('user-orders-modal');
-        const closeUserOrdersModalButton = document.getElementById('close-user-orders-modal');
-        // FIX: Mendefinisikan closeOrderSuccessModalButton sebagai elemen DOM
-        const orderSuccessModal = document.getElementById('order-success-modal');
-        const closeOrderSuccessModalButton = document.getElementById('close-order-success-modal');
-        
-        const paymentInfoModal = document.getElementById('payment-info-modal');
-        const closePaymentInfoModalButton = document.getElementById('close-payment-info-modal');
-        const showPaymentInfoButton = document.getElementById('show-payment-info');
-        const statusMessage = document.getElementById('status-message');
-
-        let app, db, auth;
-        let userId = null;
-        let isAdminMode = false;
-        let activeAdminTab = 'orders'; // 'orders' or 'recap'
-        let cart = {};
-        let storeSettings = {};
-        
-        // Helper function to convert price string (e.g., "10k" or "27.5k") to number
-        const parsePrice = (priceStr) => {
-            const str = priceStr.toLowerCase().replace('k', '');
-            if (str.includes('.')) {
-                return parseFloat(str) * 1000;
-            }
-            return parseInt(str) * 1000;
-        };
-
-        // =======================================================================================
-        // DATA PRODUK BARU DARI DAFTAR YANG ANDA BERIKAN
-        // =BAWAAN PRODUK (DEFAULT PRODUCT LIST)
-        // =======================================================================================
-        let products = [
-            // --- Pin Kopi ---
-            { id: 'p1', name: 'Cold Brew Pin Kopi', price: parsePrice('8k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
-            { id: 'p2', name: 'Kopi Lemon', price: parsePrice('10k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
-            { id: 'p3', name: 'Pin Kopi Signatur', price: parsePrice('10k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
-            { id: 'p4', name: 'Kopi Caramel Machiato', price: parsePrice('12k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
-            { id: 'p5', name: 'Kopi Butterscotch', price: parsePrice('12k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
-            { id: 'p6', name: 'Kopi Vanila Latte', price: parsePrice('12k'), description: 'Vendor: Pin Kopi', hasCoffee: true },
-            { id: 'p7', name: 'Thai Tea', price: parsePrice('10k'), description: 'Vendor: Pin Kopi', hasCoffee: false },
-            { id: 'p8', name: 'Green Tea', price: parsePrice('10k'), description: 'Vendor: Pin Kopi', hasCoffee: false },
-            
-            // --- SatSet Grill ---
-            { id: 'p9', name: 'Steik Ayam Kentang BBQ', price: parsePrice('20k'), description: 'Vendor: SatSet Grill', hasCoffee: false },
-            { id: 'p10', name: 'Steik Ayam Kentang Blackpepper', price: parsePrice('20k'), description: 'Vendor: SatSet Grill', hasCoffee: false },
-            { id: 'p11', name: 'Sosis', price: parsePrice('10k'), description: 'Vendor: SatSet Grill', hasCoffee: false },
-            { id: 'p12', name: 'Spaghetti Bolognese', price: parsePrice('15k'), description: 'Vendor: SatSet Grill', hasCoffee: false },
-            
-            // --- Ani KSF ---
-            { id: 'p13', name: 'Dosuke KFS Ori 6pc', price: parsePrice('18k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-            { id: 'p14', name: 'Dosuke KFS Ori 3pc', price: parsePrice('10k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-            { id: 'p15', name: 'Dosuke Topping Glaze 6pc', price: parsePrice('25k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-            { id: 'p16', name: 'Dosuke Topping Glaze 3pc', price: parsePrice('13k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-            { id: 'p17', name: 'Dosuke Topping Jadul (Doble Coklat Meses Dan Sweet Cheese) 6pc', price: parsePrice('30k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-            { id: 'p18', name: 'Dosuke Topping Jadul (Doble Coklat Meses Dan Sweet Cheese) 3pc', price: parsePrice('16k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-            { id: 'p19', name: 'Bomboloni KFS Filling Homemade 4pc', price: parsePrice('25k'), description: 'Vendor: Ani KSF (Filling: Susu, Coklat, Keju, Klappertaart, Greentea, Coffe)', hasCoffee: false },
-            { id: 'p20', name: 'Nasi Bakar Ayam Ori', price: parsePrice('10k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-            { id: 'p21', name: 'Nasi Bakar Ayam Pedas', price: parsePrice('10k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-            { id: 'p22', name: 'Nasi Bakar Cumi', price: parsePrice('15k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-            { id: 'p23', name: 'Es Telang Lemon', price: parsePrice('7k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-            { id: 'p24', name: 'Buko Pandan 300ml', price: parsePrice('18k'), description: 'Vendor: Ani KSF', hasCoffee: false },
-
-            // --- Melisa ---
-            { id: 'p25', name: 'Chiffon De Bandung Original', price: parsePrice('35k'), description: 'Vendor: Melisa', hasCoffee: false },
-            { id: 'p26', name: 'Chiffon De Bandung Doble Cheese', price: parsePrice('45k'), description: 'Vendor: Melisa', hasCoffee: false },
-            { id: 'p27', name: 'Chiffon De Bandung Extra Cheese', price: parsePrice('45k'), description: 'Vendor: Melisa', hasCoffee: false },
-            { id: 'p28', name: 'Chiffon De Bandung Super Cheese', price: parsePrice('55k'), description: 'Vendor: Melisa', hasCoffee: false },
-            
-            // --- Gia ---
-            { id: 'p29', name: 'Dimsum Mix Besar 8pc', price: parsePrice('27.5k'), description: 'Vendor: Gia', hasCoffee: false },
-            { id: 'p30', name: 'Dimsum Mentai 6pc', price: parsePrice('34.5k'), description: 'Vendor: Gia', hasCoffee: false },
-            
-            // --- Umi Saladin ---
-            { id: 'p31', name: 'Salad Buah', price: parsePrice('21k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
-            { id: 'p32', name: 'Sago Mango', price: parsePrice('12k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
-            { id: 'p33', name: 'Jus Pressed Cold Sun Series', price: parsePrice('15k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
-            { id: 'p34', name: 'Jus Pressed Cold Red Series', price: parsePrice('15k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
-            { id: 'p35', name: 'Jus Pressed Cold Tropical Series', price: parsePrice('15k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
-            { id: 'p36', name: 'Jus Pressed Cold Purple Series', price: parsePrice('15k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
-            { id: 'p37', name: 'Jus Pressed Cold Green Series', price: parsePrice('15k'), description: 'Vendor: Umi Saladin', hasCoffee: false },
-            
-            // --- Yulia ---
-            { id: 'p38', name: 'Klappertaart', price: parsePrice('20k'), description: 'Vendor: Yulia', hasCoffee: false },
-            { id: 'p39', name: 'Mini Soes Vanilla', price: parsePrice('35k'), description: 'Vendor: Yulia', hasCoffee: false },
-            { id: 'p40', name: 'Mini Soes Coklat', price: parsePrice('40k'), description: 'Vendor: Yulia', hasCoffee: false },
-            { id: 'p41', name: 'Mini Soes Cream Cheese', price: parsePrice('40k'), description: 'Vendor: Yulia', hasCoffee: false },
-            { id: 'p42', name: 'Brownies JBB 20*10', price: parsePrice('60k'), description: 'Vendor: Yulia', hasCoffee: false },
-            { id: 'p43', name: 'Brownies JBB 20*20cm', price: parsePrice('115k'), description: 'Vendor: Yulia', hasCoffee: false },
-            { id: 'p44', name: 'Roti Tawar JBB', price: parsePrice('15k'), description: 'Vendor: Yulia', hasCoffee: false },
-            { id: 'p45', name: 'Hazelnut Coffee', price: parsePrice('21k'), description: 'Vendor: Yulia', hasCoffee: true },
-            { id: 'p46', name: 'Matcha Latte', price: parsePrice('18k'), description: 'Vendor: Yulia', hasCoffee: false },
-            { id: 'p47', name: 'Americano Coffee', price: parsePrice('25k'), description: 'Vendor: Yulia', hasCoffee: true },
-            
-            // --- Nisa ---
-            { id: 'p48', name: 'Lumpia Sale Pisang 250gr', price: parsePrice('20k'), description: 'Vendor: Nisa', hasCoffee: false },
-            { id: 'p49', name: 'Cilok Jadul Bumbu Kacang 6pc', price: parsePrice('7k'), description: 'Vendor: Nisa', hasCoffee: false },
-            { id: 'p50', name: 'Dimsum Keju Goreng 5pc', price: parsePrice('25k'), description: 'Vendor: Nisa', hasCoffee: false },
-            
-            // --- Yasmin ---
-            { id: 'p51', name: 'Roti Cranberry Regular', price: parsePrice('18k'), description: 'Vendor: Yasmin', hasCoffee: false },
-            { id: 'p52', name: 'Roti Double Choco Regular', price: parsePrice('20k'), description: 'Vendor: Yasmin', hasCoffee: false },
-            { id: 'p53', name: 'Roti Pisang Cream Cheese Regular', price: parsePrice('18k'), description: 'Vendor: Yasmin (Harga 8k untuk yang kecil)', hasCoffee: false },
-            { id: 'p54', name: 'Roti Sosis Keju Regular', price: parsePrice('20k'), description: 'Vendor: Yasmin (Harga 10k untuk yang kecil)', hasCoffee: false },
-            { id: 'p55', name: 'Roti Cranberry Mini', price: parsePrice('55k'), description: 'Vendor: Yasmin', hasCoffee: false },
-            { id: 'p56', name: 'Roti Choco Mini', price: parsePrice('60k'), description: 'Vendor: Yasmin', hasCoffee: false },
-            { id: 'p57', name: 'Roti Mix Mini Cranberry Choco', price: parsePrice('65k'), description: 'Vendor: Yasmin', hasCoffee: false },
-            { id: 'p58', name: 'Paket Happiness', price: parsePrice('27k'), description: 'Vendor: Yasmin (Promo)', hasCoffee: false },
-            { id: 'p59', name: 'Risoles Ragout', price: parsePrice('15k'), description: 'Vendor: Yasmin', hasCoffee: false },
-            { id: 'p60', name: 'Risoles Mix Ragout Dan Ayam Pedas', price: parsePrice('15k'), description: 'Vendor: Yasmin', hasCoffee: false },
-            { id: 'p61', name: 'Paket Manis (1 Nong-nong Whippee + 2 Mini Daki)', price: parsePrice('28k'), description: 'Vendor: Yasmin', hasCoffee: false },
-            { id: 'p62', name: 'Paket Seger (1 Nong-nongmanggo + 2 Mini Daiki)', price: parsePrice('26k'), description: 'Vendor: Yasmin', hasCoffee: false },
-            { id: 'p63', name: 'Paket Wangi (1 Nong-nong Jasmine + 2 Mini Daiki)', price: parsePrice('24k'), description: 'Vendor: Yasmin', hasCoffee: false },
-            
-            // --- Mega ---
-            { id: 'p64', name: 'Smoked Chicken Shawarma', price: parsePrice('35k'), description: 'Vendor: Mega', hasCoffee: false },
-            { id: 'p65', name: 'Smoked Beef Shawarma', price: parsePrice('55k'), description: 'Vendor: Mega', hasCoffee: false },
-            { id: 'p66', name: 'Tuna Mayo Shawarma', price: parsePrice('38k'), description: 'Vendor: Mega', hasCoffee: false },
-            { id: 'p67', name: 'Smoked Chicken Sandwich', price: parsePrice('38k'), description: 'Vendor: Mega', hasCoffee: false },
-            { id: 'p68', name: 'Smoked Beef Sandwich', price: parsePrice('58k'), description: 'Vendor: Mega', hasCoffee: false },
-            { id: 'p69', name: 'Tuna Mayo Sandwich', price: parsePrice('40k'), description: 'Vendor: Mega', hasCoffee: false },
-            { id: 'p70', name: 'Ori Smoked Chicken Sandwich', price: parsePrice('35k'), description: 'Vendor: Mega', hasCoffee: false },
-            { id: 'p71', name: 'Ori Smoked Chicken Salad', price: parsePrice('35k'), description: 'Vendor: Mega', hasCoffee: false },
-            { id: 'p72', name: 'BBQ Smoked Chicken Wings', price: parsePrice('40k'), description: 'Vendor: Mega', hasCoffee: false },
-            { id: 'p73', name: 'Karak Chai 1L', price: parsePrice('60k'), description: 'Vendor: Mega', hasCoffee: false },
-            { id: 'p74', name: 'Lemonite', price: parsePrice('10k'), description: 'Vendor: Mega', hasCoffee: false },
-            
-            // --- Linda ---
-            { id: 'p75', name: 'Batagor Ayam', price: parsePrice('10k'), description: 'Vendor: Linda (Pilihan 1)', hasCoffee: false },
-            { id: 'p76', name: 'Batagor Ayam', price: parsePrice('15k'), description: 'Vendor: Linda (Pilihan 2)', hasCoffee: false },
-            { id: 'p77', name: 'Batagor Ayam + Baso Kriwil', price: parsePrice('15k'), description: 'Vendor: Linda', hasCoffee: false },
-            { id: 'p78', name: 'Martabak Coklat', price: parsePrice('10k'), description: 'Vendor: Linda', hasCoffee: false },
-            { id: 'p79', name: 'Martabak Ketan Hitam', price: parsePrice('10k'), description: 'Vendor: Linda', hasCoffee: false },
-            { id: 'p80', name: 'Martabak Kacang', price: parsePrice('10k'), description: 'Vendor: Linda', hasCoffee: false },
-            { id: 'p81', name: 'Martabak Pisang', price: parsePrice('12k'), description: 'Vendor: Linda', hasCoffee: false },
-            { id: 'p82', name: 'Martabak Coklat Kacang', price: parsePrice('13k'), description: 'Vendor: Linda', hasCoffee: false },
-            { id: 'p83', name: 'Martabak Keju', price: parsePrice('17k'), description: 'Vendor: Linda', hasCoffee: false },
-            { id: 'p84', name: 'Martabak Keju Coklat', price: parsePrice('20k'), description: 'Vendor: Linda', hasCoffee: false },
-            { id: 'p85', name: 'Martabak Keju Kacang', price: parsePrice('20k'), description: 'Vendor: Linda', hasCoffee: false },
-            { id: 'p86', name: 'Martabak Keju Pisang', price: parsePrice('21k'), description: 'Vendor: Linda', hasCoffee: false },
-            
-            // --- Sahabat Kebab ---
-            { id: 'p87', name: 'Beef Kebab Original Saouce (S)', price: parsePrice('13k'), description: 'Vendor: Sahabat Kebab', hasCoffee: false },
-            { id: 'p88', name: 'Beef Kebab Bolognese Sauce (S)', price: parsePrice('14k'), description: 'Vendor: Sahabat Kebab', hasCoffee: false },
-            { id: 'p89', name: 'Beef Kebab Spicy (S)', price: parsePrice('17k'), description: 'Vendor: Sahabat Kebab', hasCoffee: false },
-            { id: 'p90', name: 'Beef Kebab Creamy Cheese (S)', price: parsePrice('17k'), description: 'Vendor: Sahabat Kebab', hasCoffee: false },
-
-            // --- Silvia ---
-            { id: 'p91', name: 'Keripik singkong original', price: parsePrice('15k'), description: 'Vendor: Silvia', hasCoffee: false },
-            { id: 'p92', name: 'Keripik chuba balado', price: parsePrice('20k'), description: 'Vendor: Silvia', hasCoffee: false },
-            { id: 'p93', name: 'Keripik chuba keju', price: parsePrice('20k'), description: 'Vendor: Silvia', hasCoffee: false },
-            { id: 'p94', name: 'Jeruk selasih mint', price: parsePrice('12k'), description: 'Vendor: Silvia', hasCoffee: false },
-
-        ];
-        // =======================================================================================
-        
-        // Coffee variants as provided by the user (TIDAK DIUBAH)
-        const coffeeVariants = [
-            'Original Latte',
-            'Aren creamy latte',
-            'Butterscotch',
-            'Caramel',
-            'Hazelnut',
-            'Bettersweet',
-            'Americano',
-            'Lemonade'
-        ];
-
-        // Payment methods as requested by the user (TIDAK DIUBAH)
-        const paymentMethods = [
-            'Tunai',
-            'Transfer',
-            'QRIS'
-        ];
-
-        
-        
-        // Function to initialize Firebase
-        async function initializeFirebase() {
-            try {
-                if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith('...')) {
-                    console.error("Kesalahan: Anda belum memasukkan konfigurasi Firebase Anda. Silakan ikuti petunjuk di dalam kode.");
-                    return;
-                }
-                
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        // FIX: Mempertahankan ID Pengguna dengan lebih kuat
-                        if (localStorage.getItem('user_id')) {
-                            userId = localStorage.getItem('user_id');
-                        } else {
-                            userId = user.uid;
-                            localStorage.setItem('user_id', userId);
-                        }
-
-                        const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings/store`);
-                        const settingsSnap = await getDoc(settingsDocRef);
-                        
-                        // Periksa apakah dokumen settings ada
-                        if (settingsSnap.exists()) {
-                            storeSettings = settingsSnap.data();
-                            const firebaseProducts = storeSettings.products || [];
-                            
-                            // *** FIX UTAMA: Pastikan daftar produk terlengkap yang digunakan ***
-                            if (products.length > firebaseProducts.length) {
-                                // Jika daftar lokal (dari kode) lebih panjang, gunakan itu dan paksa update ke Firebase
-                                console.log("Daftar produk kode lebih lengkap. Menyimpan yang baru ke Firebase.");
-                                await setDoc(settingsDocRef, { products: products, storeOpen: storeSettings.storeOpen || true }, { merge: true });
-                                // Setelah update, kita akan menggunakan daftar 'products' lokal yang sudah lengkap
-                            } else if (firebaseProducts.length > 0) {
-                                // Jika Firebase memiliki daftar yang sama atau lebih lengkap, gunakan itu (misal sudah diupdate dari aplikasi utama)
-                                products = firebaseProducts; 
-                            }
-                            // *** AKHIR FIX UTAMA ***
-
-                        } else {
-                            // Jika dokumen setting belum ada, buat dengan status Buka dan produk dari kode
-                            await setDoc(settingsDocRef, { storeOpen: true, products: products });
-                        }
-                        
-                        // FIX: Memanggil loadCartFromFirebase di sini untuk menjamin userId sudah terisi
-                        await loadCartFromFirebase(); 
-                        renderCustomerView();
-                        listenForUserOrdersCount(); // Listen for order count on page load
-                        console.log("Pengguna terotentikasi:", userId);
-                    } else {
-                        console.log("Pengguna tidak terotentikasi, mencoba masuk secara anonim atau dengan token.");
-                        try {
-                            if (initialAuthToken) {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                            } else {
-                                await signInAnonymously(auth);
-                            }
-                        } catch (error) {
-                            console.error("Gagal masuk:", error);
-                        }
-                    }
-                });
-            } catch (e) {
-                console.error("Gagal menginisialisasi Firebase:", e);
-            }
-        }
-
-        
-
-
-        // --- View Rendering Functions ---
-        function renderCustomerView() {
-            uiContent.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <button id="user-orders-button" class="relative bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-3 rounded-full transition-colors duration-200 shadow-md flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                            <path fill-rule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.75.79-1.75 1.75v10.5c0 .96.79 1.75 1.75 1.75h12.974c.96 0 1.75-.79 1.75-1.75V8.513c0-.96-.79-1.75-1.75-1.75H16.5V6a4.5 4.5 0 10-9 0zm1.5.75v-2.25a3 3 0 116 0v2.25H9zm.75 4.5a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H10.5a.75.75 0 01-.75-.75zm.75 2.25a.75.75 0 000 1.5h2.25a.75.75 0 000-1.5H10.5z" clip-rule="evenodd" />
-                        </svg>
-                        <span id="orders-badge" class="absolute top-0 right-0 -mt-1 -mr-1 flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-xs font-bold text-white leading-none hidden"></span>
-                    </button>
-                    <button id="admin-mode-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-full transition-colors duration-200 shadow-md flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                            <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
+                <!-- Daftar Item Keranjang (Scrollable) -->
+                <div id="cart-list" class="flex-grow overflow-y-auto space-y-2 mb-3">
+                    <p class="text-gray-500 text-sm italic" id="empty-cart-message">Keranjang kosong. Silakan pilih produk.</p>
+                    <!-- Item keranjang akan dirender di sini -->
                 </div>
-                <div class="flex flex-col items-center mb-6">
-                    <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100">Masakin Aja</h1>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Pre-Order System</p>
-                </div>
-                
-                <!-- Product List -->
-                <div id="product-list" class="space-y-4 mb-6"></div>
 
-                <!-- Shopping Cart -->
-                <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                    <h2 class="text-2xl font-bold mb-4">Keranjang Belanja</h2>
-                    <div id="cart-items" class="space-y-2 mb-4">
-                        <p id="empty-cart-message" class="text-center text-gray-500 dark:text-gray-400">Keranjang kosong.</p>
-                    </div>
-                    <div class="flex justify-between items-center font-bold text-lg mb-4">
-                        <span>Total:</span>
-                        <span id="cart-total">Rp 0</span>
+                <!-- START: CUSTOMER SELECTION AREA -->
+                <div class="mt-auto pt-2 border-t border-gray-200"> 
+                    <div id="selected-customer-display" class="mb-3 p-2 bg-indigo-50 text-indigo-800 text-sm font-semibold flex justify-between items-center">
+                        <span>Pelanggan Aktif:</span>
+                        <span id="customer-name">Memuat...</span>
                     </div>
 
-                    <!-- Customer Info Form -->
-                    <div class="mb-4 space-y-2">
-                        <div>
-                            <label for="customer-name-input" class="block text-sm font-medium mb-1">Nama Pemesan</label>
-                            <input type="text" id="customer-name-input" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" placeholder="Masukkan nama Anda" />
-                        </div>
-                        <div>
-                            <label for="customer-wa-input" class="block text-sm font-medium mb-1">Nomor WA</label>
-                            <input type="text" id="customer-wa-input" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100" placeholder="Masukkan nomor WhatsApp Anda" />
-                        </div>
-                        <!-- Payment Method Dropdown -->
-                        <div>
-                            <label for="payment-method-input" class="block text-sm font-medium mb-1">Metode Pembayaran</label>
-                            <select id="payment-method-input" class="w-full p-2 rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100">
-                                <option value="" disabled selected>Pilih metode pembayaran</option>
-                                ${paymentMethods.map(method => `<option value="${method}">${method}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div id="payment-details" class="mt-4 p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-700"></div>
-                    </div>
-                    
-                    <button id="place-order-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors duration-200 shadow-md">
-                        Pesan Sekarang
-                    </button>
-                    <p id="closed-store-message" class="text-center text-red-500 mt-2 hidden">Toko Sedang Tutup</p>
-                </div>
-            `;
-            
-            document.getElementById('admin-mode-button').addEventListener('click', () => {
-                adminModal.classList.remove('hidden');
-            });
-            document.getElementById('user-orders-button').addEventListener('click', () => {
-                listenForUserOrders();
-                userOrdersModal.classList.remove('hidden');
-            });
-            document.getElementById('place-order-button').addEventListener('click', placeOrder);
-            document.getElementById('payment-method-input').addEventListener('change', updatePaymentDetails);
-
-            renderProductList();
-            renderCart();
-            updatePaymentDetails();
-        }
-
-        function renderAdminView() {
-            uiContent.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <h1 class="text-3xl font-bold text-center text-gray-800 dark:text-gray-100">Panel Admin</h1>
-                    <button id="admin-mode-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-full transition-colors duration-200 shadow-md">
-                        Keluar Admin
-                    </button>
-                </div>
-
-                <!-- Admin Tabs -->
-                <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-                    <button id="orders-tab" class="px-4 py-2 text-sm font-semibold border-b-2 ${activeAdminTab === 'orders' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'} transition-colors duration-200">
-                        Pesanan
-                    </button>
-                    <button id="recap-tab" class="px-4 py-2 text-sm font-semibold border-b-2 ${activeAdminTab === 'recap' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'} transition-colors duration-200">
-                        Rekapitulasi
-                    </button>
-                    <button id="settings-tab" class="px-4 py-2 text-sm font-semibold border-b-2 ${activeAdminTab === 'settings' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-blue-600'} transition-colors duration-200">
-                        Setting
-                    </button>
-                </div>
-                
-                <!-- Tab Content -->
-                <div id="admin-content" class="space-y-4"></div>
-            `;
-            
-            // Set up event listeners for the tabs
-            document.getElementById('orders-tab').addEventListener('click', () => {
-                activeAdminTab = 'orders';
-                renderAdminView(); // Re-render to show the orders list
-            });
-            document.getElementById('recap-tab').addEventListener('click', () => {
-                activeAdminTab = 'recap';
-                renderAdminView(); // Re-render to show the recap view
-            });
-            document.getElementById('settings-tab').addEventListener('click', () => {
-                activeAdminTab = 'settings';
-                renderAdminView(); // Re-render to show the settings view
-            });
-
-            document.getElementById('admin-mode-button').addEventListener('click', () => {
-                isAdminMode = false;
-                renderCustomerView();
-            });
-
-            // Render content based on the active tab
-            if (activeAdminTab === 'orders') {
-                document.getElementById('admin-content').innerHTML = `<div id="orders-list" class="space-y-4"><p class="text-center text-gray-500 dark:text-gray-400">Memuat pesanan...</p></div>`;
-                listenForOrders();
-            } else if (activeAdminTab === 'recap') {
-                 document.getElementById('admin-content').innerHTML = `<div id="recap-list" class="space-y-4"><p class="text-center text-gray-500 dark:text-gray-400">Memuat rekapitulasi...</p></div>`;
-                 listenForRecap();
-            } else if (activeAdminTab === 'settings') {
-                document.getElementById('admin-content').innerHTML = `<div id="settings-content"></div>`;
-                renderSettings();
-            }
-        }
-        
-        // Settings rendering and logic
-        async function renderSettings() {
-            const settingsContent = document.getElementById('settings-content');
-            
-            // Fetch initial settings from Firebase
-            const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings/store`);
-            const settingsSnap = await getDoc(settingsDocRef);
-            let storeOpen = true; // Default to open
-            
-            if (settingsSnap.exists()) {
-                const settings = settingsSnap.data();
-                storeOpen = settings.storeOpen;
-            } else {
-                 // Save default settings if they don't exist
-                 await setDoc(settingsDocRef, { storeOpen: true, products: products });
-            }
-
-            settingsContent.innerHTML = `
-                <div class="space-y-6">
-                    <!-- Store Status Toggle -->
-                    <div class="flex items-center justify-between p-4 bg-gray-100 dark:bg-neutral-700 rounded-lg shadow-sm">
-                        <p class="font-bold text-lg">Status Toko</p>
-                        <label for="store-status-toggle" class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="store-status-toggle" class="sr-only peer" ${storeOpen ? 'checked' : ''}>
-                            <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-blue-500 dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                            <span id="store-status-label" class="ml-3 text-sm font-medium">${storeOpen ? 'Buka' : 'Tutup'}</span>
-                        </label>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <button id="registered-customer-btn" class="py-2 bg-indigo-500 text-white font-semibold hover:bg-indigo-600 transition duration-150 flex items-center justify-center">
+                            <i class="ph ph-user-list text-xl mr-1"></i> Terdaftar
+                        </button>
+                        <button id="general-customer-btn" class="py-2 bg-gray-400 text-white font-semibold hover:bg-gray-500 transition duration-150 flex items-center justify-center">
+                            <i class="ph ph-user-circle-gear text-xl mr-1"></i> Umum
+                        </button>
                     </div>
                 </div>
-            `;
-            
-            // Add event listener for store status toggle
-            const storeStatusToggle = document.getElementById('store-status-toggle');
-            storeStatusToggle.addEventListener('change', async (e) => {
-                const newStatus = e.target.checked;
-                try {
-                    // Update only storeOpen status
-                    await setDoc(settingsDocRef, { storeOpen: newStatus }, { merge: true });
-                    statusMessage.textContent = `Status toko berhasil diperbarui menjadi ${newStatus ? 'Buka' : 'Tutup'}.`;
-                    statusMessage.classList.remove('hidden', 'bg-red-500');
-                    statusMessage.classList.add('bg-green-500');
-                    setTimeout(() => {
-                        statusMessage.classList.add('hidden');
-                    }, 3000);
-                } catch (e) {
-                    console.error("Gagal memperbarui status toko:", e);
-                    statusMessage.textContent = 'Gagal memperbarui status toko!';
-                    statusMessage.classList.remove('hidden', 'bg-green-500');
-                    statusMessage.classList.add('bg-red-500');
-                    setTimeout(() => {
-                        statusMessage.classList.add('hidden');
-                    }, 3000);
-                }
-            });
-            
-            // Listen for real-time updates to settings
-            onSnapshot(settingsDocRef, (doc) => {
-                if (!doc.exists()) {
-                    return; // Document doesn't exist
-                }
-                const settings = doc.data();
-                if (settings) {
-                    // Update the local product list (prices might change via the other app)
-                    // If the original app changes prices, this app will reflect them here:
-                    products = settings.products || products; 
+                <!-- END: CUSTOMER SELECTION AREA -->
 
-                    // Update the UI elements for the toggle
-                    const toggle = document.getElementById('store-status-toggle');
-                    const label = document.getElementById('store-status-label');
-                    if (toggle) {
-                        toggle.checked = settings.storeOpen;
-                    }
-                    if (label) {
-                        label.textContent = settings.storeOpen ? 'Buka' : 'Tutup';
-                    }
+                <!-- Footer Total dan Tombol Checkout -->
+                <div id="total-summary" class="pt-3"> 
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-lg font-medium text-gray-600">Total Belanja:</span>
+                        <span id="grand-total" class="text-2xl font-bold text-indigo-700">Rp 0</span>
+                    </div>
 
-                    // Update the customer view if necessary
-                    if (!isAdminMode) {
-                        renderCustomerView();
-                    }
-                }
-            });
-        }
-        
-        function renderProductList() {
-            const productList = document.getElementById('product-list');
-            const placeOrderButton = document.getElementById('place-order-button');
-            const closedStoreMessage = document.getElementById('closed-store-message');
-
-            // --- LOGIC PERTAMA: TANGKAP ACCORDION YANG SEDANG TERBUKA ---
-            let currentlyExpandedIds = [];
-            // Hanya ambil ID dari elemen yang sedang terbuka sebelum UI di-render ulang
-            document.querySelectorAll('.accordion-header').forEach(header => {
-                const targetId = header.dataset.target; // e.g., #live-cooking-pin-kopi-body
-                const targetBody = document.querySelector(targetId);
-                // Cek apakah elemen ada dan tidak memiliki kelas 'hidden'
-                if (targetBody && !targetBody.classList.contains('hidden')) {
-                    currentlyExpandedIds.push(targetId);
-                }
-            });
-            // --- AKHIR LOGIKA PENANGKAPAN STATE ---
-            
-            // --- Helper function to extract Vendor Name (Lokal untuk Pengelompokan) ---
-            const extractVendorName = (product) => {
-                const vendorMatch = product.description.match(/Vendor: (.*)/);
-                return vendorMatch ? vendorMatch[1].split(' (')[0] : 'Lainnya';
-            };
-            // --- End Helper Function ---
-            
-            // --- Helper function to map product to the new Display Type (Lokal untuk Pengelompokan) ---
-            const mapProductToDisplayType = (product) => {
-                const vendorName = extractVendorName(product);
-                const name = product.name.toLowerCase();
-
-                // === 1. LIVE COOKING (By Vendor) ===
-                if (vendorName === 'Pin Kopi') return 'Live Cooking: Pin Kopi';
-                if (vendorName === 'SatSet Grill') return 'Live Cooking: SatSet Grill';
-                if (vendorName === 'Sahabat Kebab') return 'Live Cooking: Sahabat Kebab';
-
-                // === 2. PAKET (By Name/Vendor) ===
-                if (name.includes('paket manis') || name.includes('paket seger') || name.includes('paket wangi')) {
-                    return 'Paket Roti Daiki + Kopi Nong-Nong';
-                }
-                
-                // === 3. MASAKAN (Heavy Meals) ===
-                if (name.includes('nasi bakar') || name.includes('steik') || name.includes('spaghetti')) {
-                    return 'Masakan';
-                }
-                
-                // === 4. CEMILAN KRIUX (Crispy) ===
-                if (name.includes('lumpia sale') || name.includes('keripik')) {
-                    return 'Cemilan Kriux';
-                }
-                
-                // === 5. KUDAPAN ASIN (Savory Snacks/Light Meals) ===
-                if (name.includes('risoles') || name.includes('dimsum') || name.includes('cilok') || name.includes('batagor') || name.includes('shawarma') || name.includes('sandwich') || name.includes('chicken wings') || name.includes('kebab')) {
-                     return 'Kudapan Asin';
-                }
-
-                // === 6. MINUMAN & DESSERT (Beverages and cold desserts) ===
-                if (name.includes('jus') || name.includes('sago') || name.includes('salad buah') || name.includes('buko pandan') || name.includes('lemonite') || name.includes('es telang') || name.includes('selasih mint') || name.includes('matcha') || name.includes('coffee') || name.includes('latte') || name.includes('tea') || name.includes('karak chai')) {
-                    return 'Minuman & Dessert';
-                }
-
-                // === 7. KUDAPAN MANIS (Cakes, Donuts, Martabak, Roti) ===
-                const kudapanManisVendors = ['Ani KSF', 'Melisa', 'Yulia', 'Yasmin', 'Linda'];
-                if (kudapanManisVendors.includes(vendorName) || name.includes('klappertaart') || name.includes('soes') || name.includes('brownies') || name.includes('martabak') || name.includes('chiffon') || name.includes('roti')) {
-                     return 'Kudapan Manis';
-                }
-                
-                return 'Lain-lain'; // Default fallback
-            };
-            // --- End Helper Function ---
-            
-            // Check store status from Firebase settings
-            const settingsDocRef = doc(db, `/artifacts/${appId}/public/data/settings/store`);
-            onSnapshot(settingsDocRef, (doc) => {
-                 let storeOpen = true;
-                 if (doc.exists()) {
-                     const settings = doc.data();
-                     storeOpen = settings.storeOpen;
-                 }
-                
-                if (storeOpen) {
-                    placeOrderButton.disabled = false;
-                    placeOrderButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                    closedStoreMessage.classList.add('hidden');
-                } else {
-                    placeOrderButton.disabled = true;
-                    placeOrderButton.classList.add('opacity-50', 'cursor-not-allowed');
-                    closedStoreMessage.classList.remove('hidden');
-                }
-            });
-            
-            productList.innerHTML = '';
-            
-            if (products.length === 0) {
-                 productList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Belum ada produk yang tersedia. Silakan atur produk di Panel Admin aplikasi utama Anda.</p>`;
-                 return;
-            }
-
-            // --- LOGIKA PENGELOMPOKAN BERDASARKAN TIPE TAMPILAN ---
-            const groupedProducts = products.reduce((acc, product) => {
-                // Menggunakan fungsi mapProductToDisplayType
-                const productType = mapProductToDisplayType(product); 
-                
-                if (!acc[productType]) {
-                    acc[productType] = [];
-                }
-                acc[productType].push(product);
-                return acc;
-            }, {});
-
-            let productHtml = '';
-            
-            // Menentukan urutan Tipe berdasarkan permintaan (memindahkan Sahabat Kebab)
-            const typeOrder = [
-                'Live Cooking: Pin Kopi',
-                'Live Cooking: SatSet Grill',
-                'Live Cooking: Sahabat Kebab', // Pindah ke sini
-                'Paket Roti Daiki + Kopi Nong-Nong',
-                'Kudapan Manis',
-                'Masakan',
-                'Kudapan Asin',
-                'Cemilan Kriux',
-                'Minuman & Dessert',
-                'Lain-lain'
-            ];
-            
-            // Mengiterasi berdasarkan urutan yang sudah ditentukan
-            typeOrder.forEach(productType => {
-                if (groupedProducts[productType]) {
-                    const typeId = productType.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase(); // Membuat ID yang aman
-                    const targetBodyIdSelector = `#${typeId}-body`;
-                    
-                    // --- LOGIKA KEDUA: RESTORE STATE ---
-                    // Cek apakah Accordion ini harus terbuka (ada di array currentlyExpandedIds)
-                    const shouldExpand = currentlyExpandedIds.includes(targetBodyIdSelector);
-                    const isExpandedAttr = shouldExpand ? 'true' : 'false';
-                    // --- AKHIR LOGIKA RESTORE STATE ---
-
-                    
-                    productHtml += `
-                        <div class="rounded-xl shadow-md border border-gray-300 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
-                            <!-- Accordion Header (Product Type) -->
-                            <button class="accordion-header flex justify-between items-center w-full p-4 font-bold text-lg transition-colors duration-200 bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600"
-                                data-target="${targetBodyIdSelector}" aria-expanded="${isExpandedAttr}">
-                                <span>${productType}</span>
-                                <svg class="w-5 h-5 transition-transform duration-300 ${shouldExpand ? 'transform rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
+                    <!-- START: PAYMENT METHOD SELECTION -->
+                    <div class="mb-4">
+                        <p class="text-sm font-semibold text-gray-700 mb-2">Metode Pembayaran:</p>
+                        <div id="payment-method-container" class="grid grid-cols-3 gap-2">
+                            <button id="cash-btn" data-method="cash" class="payment-method-btn py-2 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 transition flex items-center justify-center">
+                                <i class="ph ph-money text-lg mr-1"></i> Tunai
                             </button>
-                            
-                            <!-- Accordion Body (Products) -->
-                            <div id="${typeId}-body" class="accordion-body ${shouldExpand ? '' : 'hidden'}" aria-labelledby="${typeId}-header">
-                                <div class="p-4 space-y-4">
-                                    ${groupedProducts[productType].map(product => {
-                                        const quantity = cart[product.id] ? cart[product.id].quantity : 0;
-                                        // Menggunakan extractVendorName untuk memastikan logika Accordion berjalan
-                                        const vendorData = extractVendorName(product); 
-                                        return `
-                                            <div class="flex justify-between items-center border-b pb-3 last:border-b-0 last:pb-0">
-                                                <div class="flex-grow">
-                                                    <p class="font-semibold">${product.name}</p>
-                                                    <!-- BARIS INI DIHAPUS: <p class="text-xs text-gray-500 dark:text-gray-400 mt-0">Vendor: ${vendorData}</p> -->
-                                                    <p class="text-sm font-bold text-base mt-1 text-yellow-600 dark:text-yellow-400">Rp ${product.price.toLocaleString('id-ID')}</p>
-                                                </div>
-                                                <div class="flex items-center space-x-2">
-                                                    <button data-id="${product.id}" class="minus-button bg-neutral-300 dark:bg-neutral-600 text-gray-800 dark:text-gray-200 font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
-                                                        -
-                                                    </button>
-                                                    <span class="quantity-display font-bold text-lg w-6 text-center">${quantity}</span>
-                                                    <button data-id="${product.id}" class="plus-button bg-blue-500 hover:bg-blue-600 text-white font-semibold py-1 px-3 rounded-full transition-colors duration-200 shadow-sm">
-                                                        +
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        `;
-                                    }).join('')}
-                                </div>
-                            </div>
+                            <button id="transfer-btn" data-method="transfer" class="payment-method-btn py-2 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 transition flex items-center justify-center">
+                                <i class="ph ph-bank text-lg mr-1"></i> Transfer
+                            </button>
+                            <button id="qris-btn" data-method="qris" class="payment-method-btn py-2 text-sm bg-gray-200 text-gray-700 hover:bg-gray-300 transition flex items-center justify-center">
+                                <i class="ph ph-qr-code text-lg mr-1"></i> QRIS
+                            </button>
                         </div>
-                    `;
-                }
-            });
-            // --- AKHIR LOGIKA PENGELOMPOKAN ---
+                    </div>
+                    <!-- END: PAYMENT METHOD SELECTION -->
 
-            productList.innerHTML = productHtml;
+                    <button id="checkout-button" class="w-full py-3 bg-indigo-600 text-white font-bold shadow-md shadow-indigo-300 hover:bg-indigo-700 transition duration-150 flex items-center justify-center disabled:opacity-50" disabled>
+                        <i class="ph-fill ph-wallet text-xl mr-2"></i> Proses Pembayaran
+                    </button>
+                </div>
+            </div>
+        </div>
 
-            // Add event listeners for the accordion
-            document.querySelectorAll('.accordion-header').forEach(header => {
-                header.addEventListener('click', () => {
-                    const targetId = header.dataset.target;
-                    const targetBody = document.querySelector(targetId);
-                    const isExpanded = header.getAttribute('aria-expanded') === 'true';
-
-                    // Toggle visibility and attributes
-                    targetBody.classList.toggle('hidden');
-                    header.setAttribute('aria-expanded', !isExpanded);
-                    
-                    // Toggle arrow rotation
-                    const arrow = header.querySelector('svg');
-                    arrow.classList.toggle('rotate-180');
-                    
-                    // Logika tambahan untuk menutup yang lain (opsional, tapi sering digunakan)
-                    document.querySelectorAll('.accordion-body').forEach(body => {
-                        if (body.id !== targetBody.id && !body.classList.contains('hidden')) {
-                            body.classList.add('hidden');
-                            document.querySelector(`[data-target="#${body.id}"]`).setAttribute('aria-expanded', 'false');
-                            document.querySelector(`[data-target="#${body.id}"] svg`).classList.remove('rotate-180');
-                        }
-                    });
-                });
-            });
-
-
-            // Add event listeners for the quantity buttons
-            document.querySelectorAll('.minus-button').forEach(button => {
-                button.addEventListener('click', decrementQuantity);
-            });
-            document.querySelectorAll('.plus-button').forEach(button => {
-                button.addEventListener('click', incrementQuantity);
-            });
-        }
-
-        function renderCart() {
-            const cartItems = document.getElementById('cart-items');
-            const cartTotalElement = document.getElementById('cart-total');
-            cartItems.innerHTML = '';
-            let total = 0;
-
-            if (Object.keys(cart).length === 0) {
-                cartItems.innerHTML = `<p id="empty-cart-message" class="text-center text-gray-500 dark:text-gray-400">Keranjang kosong.</p>`;
-            } else {
-                for (const productId in cart) {
-                    const item = cart[productId];
-                    const product = products.find(p => p.id === productId);
-                    if (product) {
-                        const itemElement = document.createElement('div');
-                        itemElement.className = 'flex justify-between items-center';
-                        itemElement.innerHTML = `
-                            <div>
-                                <p>${product.name} x ${item.quantity}</p>
-                            </div>
-                            <p>Rp ${(product.price * item.quantity).toLocaleString('id-ID')}</p>
-                        `;
-                        // Removed dynamic variant rendering
-                        cartItems.appendChild(itemElement);
-
-                        total += product.price * item.quantity;
-                    }
-                }
-            }
-            cartTotalElement.textContent = `Rp ${total.toLocaleString('id-ID')}`;
-        }
-
-        // Function to update the payment details section
-        function updatePaymentDetails() {
-            const paymentMethod = document.getElementById('payment-method-input').value;
-            const detailsContainer = document.getElementById('payment-details');
-            
-            let content = '';
-            // URL placeholder yang terjamin berfungsi untuk demonstrasi
-            const QRIS_URL = "https://placehold.co/200x200/4c4a4e/ffffff?text=QRIS+MASAKIN"; 
-
-            if (paymentMethod === 'QRIS') {
-                content = `
-                    <p class="font-bold text-lg mb-2">Detail Pembayaran QRIS</p>
-                    <p class="mb-2">Scan untuk Bayar</p>
-                    <img id="qris-display-image" src="${QRIS_URL}" alt="QRIS Code" class="mx-auto rounded-lg shadow-md w-48 h-auto">
-                    <div class="hidden text-xs text-center text-red-600 dark:text-red-400 mt-2" id="qris-error-message">Gambar QRIS gagal dimuat. Gunakan tautan lain.</div>
-                `;
-            } else if (paymentMethod === 'Transfer') {
-                content = `
-                    <p class="font-bold text-lg mb-2">Detail Transfer Bank</p>
-                    <p class="text-sm">Bank: Bank Syariah Indonesia (BSI)</p>
-                    <p class="text-sm">No.Rek: 7292519928</p>
-                    <p class="text-sm">a.n: Irianti Mega</p>
-                `;
-            } else if (paymentMethod === 'Tunai') {
-                content = `<p class="text-sm text-center text-gray-500 dark:text-gray-400">Pembayaran dilakukan secara tunai saat pesanan diterima.</p>`;
-            } else {
-                content = ''; // This will handle the empty default state
-            }
-
-            detailsContainer.innerHTML = content;
-            
-            // FIX: Tambahkan penanganan error di sini juga untuk menyembunyikan pesan default
-            const imgElement = document.getElementById('qris-display-image');
-            if (imgElement) {
-                // Ensure the error message is hidden when the image loads successfully
-                imgElement.onload = function() {
-                    const errorMessage = document.getElementById('qris-error-message');
-                    if (errorMessage) errorMessage.classList.add('hidden');
-                };
-                // Show error message if the image fails to load
-                imgElement.onerror = function() {
-                    this.style.display = 'none';
-                    const errorMessage = document.getElementById('qris-error-message');
-                    if (errorMessage) errorMessage.classList.remove('hidden');
-                };
-            }
-        }
+        <!-- Modal Pilih Pelanggan -->
+        <div id="customer-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 shadow-2xl w-full max-w-sm transform transition-all flex flex-col max-h-[80vh]">
+                <h3 class="text-xl font-bold text-indigo-600 mb-4 flex items-center border-b pb-2">
+                    <i class="ph-fill ph-user-list text-2xl mr-2"></i> Pilih Pelanggan Terdaftar
+                </h3>
+                <div id="customer-list" class="flex-grow overflow-y-auto -mx-6 px-6 space-y-1">
+                    <p class="text-center text-gray-500 p-4">Memuat data pelanggan...</p>
+                    <!-- Daftar Pelanggan akan dimuat di sini -->
+                </div>
+                <div class="flex justify-end pt-4 space-x-3"> 
+                     <button id="confirm-customer-btn" disabled class="py-2 px-4 bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition disabled:opacity-50">
+                        Pilih
+                    </button>
+                    <button onclick="closeCustomerModal()" class="py-2 px-4 bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition">
+                        Batal
+                    </button>
+                </div>
+            </div>
+        </div>
         
-        // --- Data & Interaction Functions ---
-        async function incrementQuantity(event) {
-            const productId = event.target.dataset.id;
-            const product = products.find(p => p.id === productId);
+        <!-- Modal Konfirmasi Pembayaran -->
+        <div id="checkout-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 shadow-2xl w-full max-w-sm transform transition-all">
+                <div id="checkout-success" class="text-center">
+                    <h3 class="text-2xl font-bold text-green-600 mb-4 flex items-center justify-center">
+                        <i class="ph-fill ph-check-circle text-3xl mr-2"></i> Transaksi Berhasil!
+                    </h3>
+                    <p class="text-gray-700 mb-4">Pembayaran senilai <span id="modal-total" class="font-bold text-lg text-indigo-600"></span> telah berhasil diproses.</p>
+                    <p class="text-sm text-gray-600 mb-2">Pelanggan: <span id="modal-customer-name" class="font-medium text-indigo-500"></span></p>
+                    <p class="text-sm text-gray-600 mb-4">Metode: <span id="modal-payment-method" class="font-medium text-indigo-500"></span></p>
+                </div>
+                
+                <div id="checkout-fail" class="hidden text-center">
+                    <h3 class="text-2xl font-bold text-red-600 mb-4 flex items-center justify-center">
+                        <i class="ph-fill ph-x-circle text-3xl mr-2"></i> Transaksi Gagal!
+                    </h3>
+                    <p class="text-gray-700 mb-4">Terjadi kesalahan saat menyimpan data transaksi.</p>
+                    <p id="modal-error-message" class="text-xs text-red-500 italic"></p>
+                </div>
 
-            // Safety check for empty product list
+                <div class="flex justify-end pt-4">
+                    <button onclick="closeModal(true)" class="py-2 px-4 bg-green-500 text-white font-semibold hover:bg-green-600 transition">
+                        Selesai
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // LOKASI PENAMBAHAN: Konfigurasi dan Inisialisasi Supabase
+        // GANTI DENGAN KUNCI DAN URL ASLI ANDA
+        const SUPABASE_URL = 'https://drfdjznyikcsercajaek.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRyZmRqem55aWtjc2VyY2FqYWVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMTkyNTMsImV4cCI6MjA3NTU5NTI1M30.D2tbT9xTSblfG2Cvy4FEpZM5iqOr7FfMaIt6A-8Msuk';
+        
+        // ID PELANGGAN DEFAULT (sesuai permintaan)
+        const DEFAULT_CUSTOMER_ID = '9029da8a-cd47-4634-bde6-b2459750ae42';
+        
+        // Inisialisasi Klien Supabase 
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Data Aplikasi
+        let products = []; 
+        let cart = []; // Keranjang sekarang akan menyimpan objek dengan properti: product_id, product_name, price, category, quantity
+        // currentTransactionId telah dihapus
+        let productTypes = []; 
+        let selectedType = 'all'; 
+        
+        let selectedCustomerId = DEFAULT_CUSTOMER_ID; 
+        let selectedCustomerName = '-- Pilih Pelanggan --'; 
+        let users = []; 
+        
+        let tempSelectedCustomerId = null;
+        let tempSelectedCustomerName = null;
+        
+        let selectedPaymentMethod = null; 
+
+        // Referensi DOM
+        let cartListEl, grandTotalEl, emptyMessageEl, checkoutButtonEl;
+        // transactionIdEl telah dihapus
+        let productGridEl, checkoutModalEl, modalTotalEl, loadingMessageEl, typeFilterEl; 
+        let customerNameEl, registeredCustomerBtnEl, generalCustomerBtnEl, customerModalEl, customerListEl, modalCustomerNameEl; 
+        let confirmCustomerBtnEl;
+        let paymentMethodContainerEl, modalPaymentMethodEl;
+        let checkoutSuccessEl, checkoutFailEl, modalErrorMessageEl; 
+
+
+        // --- Utility Functions ---
+
+        /** Mengubah angka menjadi format mata uang Rupiah */
+        const formatRupiah = (number) => {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(number);
+        };
+        
+        // Fungsi generateTransactionId telah dihapus
+
+        /** Mengaktifkan/nonaktifkan tombol checkout */
+        const updateCheckoutButtonState = () => {
+            if (!checkoutButtonEl) return;
+            // Checkout aktif jika keranjang tidak kosong DAN metode pembayaran sudah dipilih
+            const isCartEmpty = cart.length === 0;
+            const isPaymentSelected = selectedPaymentMethod !== null;
+            
+            checkoutButtonEl.disabled = isCartEmpty || !isPaymentSelected;
+            
+            // Perbarui visual tombol
+            if (!isPaymentSelected && cart.length > 0) {
+                 checkoutButtonEl.innerHTML = '<i class="ph-fill ph-warning-circle text-xl mr-2"></i> Pilih Metode Bayar!';
+                 checkoutButtonEl.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+                 checkoutButtonEl.classList.add('bg-red-500', 'hover:bg-red-600');
+            } else {
+                 checkoutButtonEl.innerHTML = '<i class="ph-fill ph-wallet text-xl mr-2"></i> Proses Pembayaran';
+                 checkoutButtonEl.classList.remove('bg-red-500', 'hover:bg-red-600');
+                 checkoutButtonEl.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+            }
+        };
+
+
+        // --- Customer Logic ---
+
+        /** Mengupdate tampilan pelanggan yang dipilih */
+        const updateCustomerDisplay = () => {
+            if (customerNameEl) {
+                customerNameEl.textContent = selectedCustomerName;
+            }
+        };
+
+        /** Mengambil data pengguna (customer) dari Supabase dan mengurutkannya A-Z */
+        const fetchUsers = async () => {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('users') 
+                    // Ambil semua kolom yang dibutuhkan untuk order
+                    .select('id, full_name, email, phone_number'); 
+
+                if (error) {
+                    console.error('Error fetching users:', error.message);
+                    return;
+                }
+
+                // LOGIKA: Urutkan data berdasarkan full_name A-Z (case-insensitive)
+                users = data.sort((a, b) => {
+                    const nameA = a.full_name.toUpperCase();
+                    const nameB = b.full_name.toUpperCase();
+                    if (nameA < nameB) return -1;
+                    if (nameA > nameB) return 1;
+                    return 0;
+                });
+            } catch (err) {
+                console.error('Exception during fetchUsers:', err);
+            }
+        };
+        
+        /** Mengambil data pelanggan default (Umum) */
+        const fetchDefaultCustomer = async () => {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('users') 
+                    .select('id, full_name') // Hanya perlu nama untuk tampilan
+                    .eq('id', DEFAULT_CUSTOMER_ID)
+                    .single();
+
+                if (error || !data) {
+                    console.warn(`Customer default (ID: ${DEFAULT_CUSTOMER_ID}) tidak ditemukan. Menggunakan nama 'Umum' generik.`);
+                    selectCustomer(DEFAULT_CUSTOMER_ID, 'Umum');
+                    return;
+                }
+                selectCustomer(data.id, data.full_name);
+
+            } catch (err) {
+                console.error('Exception during fetchDefaultCustomer:', err);
+                selectCustomer(DEFAULT_CUSTOMER_ID, 'Umum'); // Fallback aman
+            }
+        };
+
+        /** Memilih pelanggan (Final Commit) */
+        const selectCustomer = (id, name) => {
+            selectedCustomerId = id;
+            selectedCustomerName = name;
+            
+            console.log(`[DEBUG] Customer Set: ID=${selectedCustomerId}, Name=${selectedCustomerName}`);
+
+            updateCustomerDisplay();
+            closeCustomerModal();
+        };
+        
+        /** Menyorot pilihan sementara di modal */
+        const highlightCustomer = (id, name) => {
+            if (!customerListEl || !confirmCustomerBtnEl) return;
+            
+            tempSelectedCustomerId = id;
+            tempSelectedCustomerName = name;
+
+            // Visual highlighting
+            const allButtons = customerListEl.querySelectorAll('.select-customer-btn');
+            allButtons.forEach(btn => {
+                btn.classList.remove('bg-indigo-100', 'font-bold');
+            });
+            
+            const selectedButton = customerListEl.querySelector(`[data-customer-id="${id}"]`);
+            if (selectedButton) {
+                 selectedButton.classList.add('bg-indigo-100', 'font-bold');
+            }
+
+            // Aktifkan tombol Pilih
+            confirmCustomerBtnEl.disabled = false;
+        };
+        
+        /** Mengkonfirmasi pemilihan pelanggan */
+        const confirmCustomerSelection = () => {
+            if (tempSelectedCustomerId && tempSelectedCustomerName) {
+                // Pindahkan pilihan sementara ke pilihan aktif
+                selectCustomer(tempSelectedCustomerId, tempSelectedCustomerName);
+            } else {
+                closeCustomerModal(); 
+            }
+            // Reset status sementara setelah konfirmasi
+            tempSelectedCustomerId = null;
+            tempSelectedCustomerName = null;
+        };
+
+
+        /** Menampilkan Modal Daftar Pelanggan */
+        const showCustomerModal = async () => {
+            if (!customerModalEl || !customerListEl || !confirmCustomerBtnEl) return;
+
+            // Set status sementara ke pelanggan yang sudah aktif saat modal dibuka
+            tempSelectedCustomerId = selectedCustomerId;
+            tempSelectedCustomerName = selectedCustomerName;
+            
+            // Nonaktifkan tombol Pilih di awal jika belum ada pelanggan aktif
+            confirmCustomerBtnEl.disabled = (selectedCustomerName === '-- Pilih Pelanggan --'); 
+
+            // Pastikan data pengguna sudah dimuat dan diurutkan
+            customerListEl.innerHTML = `<p class="text-center text-gray-500 p-4">Memuat data pelanggan...</p>`;
+            await fetchUsers(); 
+            
+            if (users.length === 0) {
+                customerListEl.innerHTML = `<p class="text-center text-gray-500 p-4">Tidak ada pelanggan terdaftar.</p>`;
+            } else {
+                // Render daftar pelanggan yang sudah terurut
+                customerListEl.innerHTML = users.map(user => `
+                    <button data-customer-id="${user.id}" data-customer-name="${user.full_name}"
+                            class="select-customer-btn w-full p-3 text-left border-b border-gray-100 hover:bg-indigo-50 transition ${user.id === selectedCustomerId ? 'bg-indigo-100 font-bold' : ''}">
+                        <span class="font-medium text-gray-800 block truncate">${user.full_name}</span>
+                    </button>
+                `).join('');
+            }
+
+            customerModalEl.classList.remove('hidden');
+        };
+
+        /** Menutup Modal Pelanggan */
+        const closeCustomerModal = () => {
+            if (customerModalEl) {
+                customerModalEl.classList.add('hidden');
+            }
+             // Reset status sementara
+            tempSelectedCustomerId = null;
+            tempSelectedCustomerName = null;
+        };
+        
+        // --- Payment Logic ---
+        
+        /** Memilih metode pembayaran */
+        const selectPaymentMethod = (method) => {
+            selectedPaymentMethod = method;
+            
+            // Hapus highlight dari semua tombol
+            const allButtons = paymentMethodContainerEl.querySelectorAll('.payment-method-btn');
+            allButtons.forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-300');
+                btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+            });
+
+            // Tambahkan highlight ke tombol yang dipilih
+            const selectedButton = paymentMethodContainerEl.querySelector(`[data-method="${method}"]`);
+            if (selectedButton) {
+                selectedButton.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+                selectedButton.classList.add('bg-indigo-600', 'text-white', 'shadow-md', 'shadow-indigo-300');
+            }
+            
+            updateCheckoutButtonState();
+        };
+
+
+        // --- Product & Cart Logic ---
+        
+        /** Mengambil data produk dari Supabase */
+        const fetchProducts = async () => {
+            if (loadingMessageEl) loadingMessageEl.classList.remove('hidden');
+            
+            try {
+                const { data, error } = await supabaseClient 
+                    .from('products') 
+                    .select('id, name, price, type'); // type akan digunakan sebagai category
+
+                if (loadingMessageEl) loadingMessageEl.classList.add('hidden');
+
+                if (error) {
+                    console.error('Error fetching products:', error.message);
+                    if (productGridEl) productGridEl.innerHTML = `<p class="col-span-2 text-red-500 p-4">Gagal memuat produk: ${error.message}</p>`;
+                    return;
+                }
+
+                products = data.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    price: p.price || 0, 
+                    type: p.type || 'Lainnya' // Digunakan sebagai category
+                }));
+                
+                console.log(`[DEBUG] Produk berhasil dimuat: ${products.length} item.`); // Log sukses muat data
+
+                const uniqueTypes = [...new Set(products.map(p => p.type).filter(Boolean))];
+                productTypes = uniqueTypes.sort(); 
+
+            } catch (err) {
+                console.error('Exception during fetchProducts:', err);
+                if (loadingMessageEl) loadingMessageEl.classList.add('hidden');
+                if (productGridEl) productGridEl.innerHTML = `<p class="col-span-2 text-red-500 p-4">Terjadi kesalahan koneksi.</p>`;
+            }
+            
+            // Render UI setelah data dimuat
+            renderTypesDropdown(); 
+            renderProducts(); 
+            updateCartUI();
+        };
+
+        /** Merender dropdown tipe produk */
+        const renderTypesDropdown = () => {
+            if (!typeFilterEl) return;
+
+            let optionsHtml = `
+                <option value="all">Semua Tipe</option>
+            `;
+
+            optionsHtml += productTypes.map(type => `
+                <option value="${type}" ${selectedType === type ? 'selected' : ''}>
+                    ${type}
+                </option>
+            `).join('');
+
+            typeFilterEl.innerHTML = optionsHtml;
+        };
+
+        /** Mengubah tipe yang dipilih dan merender ulang produk */
+        const selectType = (type) => {
+            selectedType = type;
+            renderProducts(); 
+        };
+        
+        /** Menambahkan/mengupdate produk ke keranjang */
+        const addProductToCart = (productId) => {
+            // PERBAIKAN: Menggunakan String(p.id) untuk memastikan perbandingan tipe data string vs string
+            const product = products.find(p => String(p.id) === productId); 
+            
             if (!product) {
-                 console.error("Produk tidak ditemukan.");
+                 console.error(`[ERROR] Produk dengan ID ${productId} tidak ditemukan di array 'products'.`); 
                  return;
             }
 
-            if (cart[productId]) {
-                cart[productId].quantity++;
+            // MENGGUNAKAN product_id dan quantity SESUAI PERMINTAAN JSONB
+            const existingItem = cart.find(item => String(item.product_id) === productId); 
+
+            if (existingItem) {
+                existingItem.quantity++; // UBAH dari qty
             } else {
-                cart[productId] = { quantity: 1 };
-                // Removed coffee variant logic here
+                cart.push({
+                    product_id: product.id, // SESUAI PERMINTAAN
+                    product_name: product.name, // SESUAI PERMINTAAN
+                    price: product.price,
+                    category: product.type, // SESUAI PERMINTAAN (menggunakan field 'type')
+                    quantity: 1 // UBAH dari qty
+                });
             }
+            console.log(`[DEBUG] Produk ${product.name} berhasil ditambahkan/diperbarui.`);
+            updateCartUI();
+        };
+
+        /** Mengubah kuantitas item di keranjang */
+        const changeItemQuantity = (productId, change) => {
+            // Menggunakan product_id untuk perbandingan yang konsisten
+            const itemIndex = cart.findIndex(item => String(item.product_id) === productId); // UBAH dari id
+
+            if (itemIndex > -1) {
+                cart[itemIndex].quantity += change; // UBAH dari qty
+
+                if (cart[itemIndex].quantity <= 0) { // UBAH dari qty
+                    cart.splice(itemIndex, 1); // Hapus jika kuantitas <= 0
+                }
+            }
+            updateCartUI();
+        };
+
+        /** Menghitung total belanja */
+        const calculateTotal = () => {
+            // Menggunakan item.quantity untuk perhitungan total
+            return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        };
+
+        /** Merender daftar produk di UI */
+        const renderProducts = () => {
+            if (!productGridEl) return; 
             
-            await saveCartToFirebase();
-            renderProductList(); // Re-render product list to update quantity display
-            renderCart();
-        }
-
-        async function decrementQuantity(event) {
-            const productId = event.target.dataset.id;
-             const product = products.find(p => p.id === productId);
-
-            if (cart[productId]) {
-                cart[productId].quantity--;
-                if (cart[productId].quantity <= 0) {
-                    delete cart[productId];
-                } 
-            }
-
-            await saveCartToFirebase();
-            renderProductList(); // Re-render product list to update quantity display
-            renderCart();
-        }
-
-        // New function to reset the form and cart UI
-        function resetFormAndCart() {
-            cart = {};
-            document.getElementById('customer-name-input').value = '';
-            document.getElementById('customer-wa-input').value = '';
-            document.getElementById('payment-method-input').value = '';
-            renderProductList();
-            renderCart();
-            updatePaymentDetails();
-        }
-
-        async function saveCartToFirebase() {
-            if (!userId) {
-                console.error("User ID tidak tersedia.");
-                return;
-            }
-            const cartDocRef = doc(db, `/artifacts/${appId}/users/${userId}/cart/current`);
-            try {
-                if (Object.keys(cart).length === 0) {
-                    // If cart is empty, delete the document
-                    await deleteDoc(cartDocRef);
-                } else {
-                    await setDoc(cartDocRef, { cartData: cart });
-                }
-                console.log("Keranjang berhasil disimpan ke Firebase.");
-            } catch (e) {
-                console.error("Gagal menyimpan keranjang:", e);
-            }
-        }
-
-        async function loadCartFromFirebase() {
-            if (!userId) return;
-            const cartDocRef = doc(db, `/artifacts/${appId}/users/${userId}/cart/current`);
-            try {
-                const docSnap = await getDoc(cartDocRef);
-                if (docSnap.exists()) {
-                    cart = docSnap.data().cartData;
-                    console.log("Keranjang berhasil dimuat dari Firebase.");
-                } else {
-                    console.log("Tidak ada data keranjang di Firebase.");
-                }
-            } catch (e) {
-                console.error("Gagal memuat keranjang:", e);
-            }
-        }
-
-
-        async function placeOrder() {
-            const customerName = document.getElementById('customer-name-input').value.trim();
-            const customerWa = document.getElementById('customer-wa-input').value.trim();
-            const paymentMethod = document.getElementById('payment-method-input').value;
-
-            if (Object.keys(cart).length === 0) {
-                orderSuccessModal.querySelector('h2').textContent = "Keranjang Kosong";
-                orderSuccessModal.querySelector('p').textContent = "Silakan tambahkan item ke keranjang Anda sebelum memesan.";
-                orderSuccessModal.classList.remove('hidden');
-                return;
-            }
-            if (!customerName || !customerWa) {
-                orderSuccessModal.querySelector('h2').textContent = "Data Kurang Lengkap";
-                orderSuccessModal.querySelector('p').textContent = "Nama dan Nomor WA tidak boleh kosong.";
-                orderSuccessModal.classList.remove('hidden');
-                return;
-            }
-            if (!paymentMethod) {
-                orderSuccessModal.querySelector('h2').textContent = "Metode Pembayaran Belum Dipilih";
-                orderSuccessModal.querySelector('p').textContent = "Silakan pilih metode pembayaran.";
-                orderSuccessModal.classList.remove('hidden');
+            if (products.length === 0 && !loadingMessageEl.classList.contains('hidden')) {
                 return;
             }
 
-            const order = {
-                items: cart,
-                total: calculateTotal(),
-                customerName: customerName,
-                customerWa: customerWa,
-                paymentMethod: paymentMethod,
-                status: 'pending',
-                customerId: userId,
-                timestamp: Date.now()
-            };
+            const filteredProducts = selectedType === 'all'
+                ? products
+                : products.filter(p => p.type === selectedType);
 
-            try {
-                const ordersCollectionPath = `/artifacts/${appId}/public/data/orders`;
-                await addDoc(collection(db, ordersCollectionPath), order);
-                console.log("Pesanan berhasil dibuat!");
-                await deleteDoc(doc(db, `/artifacts/${appId}/users/${userId}/cart/current`));
-            } catch (e) {
-                console.error("Gagal membuat pesanan:", e);
-            } finally {
-                orderSuccessModal.classList.remove('hidden');
-                resetFormAndCart();
-            }
-        }
-
-        // FIX: Menambahkan Event Listener di bagian akhir script
-        closeOrderSuccessModalButton.addEventListener('click', () => {
-            orderSuccessModal.classList.add('hidden');
-        });
-
-
-        function calculateTotal() {
-            let total = 0;
-            for (const productId in cart) {
-                const item = cart[productId];
-                const product = products.find(p => p.id === productId);
-                if (product) {
-                    total += product.price * item.quantity;
-                }
-            }
-            return total;
-        }
-
-        // --- Admin Functions ---
-        async function listenForOrders() {
-            const ordersList = document.getElementById('orders-list');
-            const ordersCollectionPath = `/artifacts/${appId}/public/data/orders`;
-            
-            const q = query(collection(db, ordersCollectionPath), orderBy('timestamp', 'desc'));
-            
-            onSnapshot(q, (snapshot) => {
-                ordersList.innerHTML = '';
-                if (snapshot.empty) {
-                    ordersList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Belum ada pesanan.</p>`;
-                    return;
-                }
-                
-                snapshot.forEach(doc => {
-                    const order = doc.data();
-                    const orderItem = document.createElement('div');
-                    orderItem.className = `p-4 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 transition-colors duration-200 ${order.status === 'completed' ? 'bg-green-100 dark:bg-green-900' : 'bg-yellow-100 dark:bg-yellow-900'}`;
+            if (filteredProducts.length === 0) {
+                const message = selectedType === 'all' 
+                    ? `Tidak ada produk yang tersedia.`
+                    : `Tidak ada produk di tipe ${selectedType}.`;
                     
-                    const total = order.total.toLocaleString('id-ID');
-                    const orderDate = new Date(order.timestamp).toLocaleString('id-ID');
-                    
-                    let itemsHtml = '';
-                    for (const productId in order.items) {
-                        const item = order.items[productId];
-                        const product = products.find(p => p.id === productId);
-                        
-                        if (product) {
-                            const subtotal = product.price * item.quantity;
-                            itemsHtml += `
-                                <li class="flex justify-between items-center">
-                                    <span>${product.name} x ${item.quantity}</span>
-                                    <div>
-                                        <span class="text-xs text-gray-600 dark:text-gray-400 mr-2">(Rp ${product.price.toLocaleString('id-ID')})</span>
-                                        <span class="font-medium">Rp ${subtotal.toLocaleString('id-ID')}</span>
-                                    </div>
-                                </li>
-                            `;
-                        }
-                    }
-
-                    orderItem.innerHTML = `
-                        <p class="font-bold text-lg mb-2">Pesanan #${doc.id.substring(0, 8)}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Nama: ${order.customerName}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Nomor WA: ${order.customerWa}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Metode Pembayaran: ${order.paymentMethod}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Pelanggan ID: ${order.customerId.substring(0, 5)}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Tanggal: ${orderDate}</p>
-                        <ul class="list-none space-y-1 mb-4 text-sm">${itemsHtml}</ul>
-                        <p class="font-bold text-lg mb-4">Total: Rp ${total}</p>
-                        <p class="font-semibold text-sm mb-2">Status: ${order.status === 'completed' ? '✅ Pembayaran Diterima' : '⏳ Menunggu Konfirmasi'}</p>
-                        ${order.status !== 'completed' ? `<button data-id="${doc.id}" class="complete-order-button bg-neutral-800 hover:bg-neutral-900 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm w-full mb-2">Tandai Selesai</button>` : ''}
-                        <button data-id="${doc.id}" class="delete-order-button bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm w-full">Hapus Pesanan</button>
-                    `;
-                    ordersList.appendChild(orderItem);
-                });
-
-                document.querySelectorAll('.complete-order-button').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const orderId = e.target.dataset.id;
-                        completeOrder(orderId);
-                    });
-                });
-                document.querySelectorAll('.delete-order-button').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const orderId = e.target.dataset.id;
-                        deleteOrder(orderId);
-                    });
-                });
-            });
-        }
-
-        async function completeOrder(orderId) {
-            const orderDocRef = doc(db, `/artifacts/${appId}/public/data/orders/${orderId}`);
-            try {
-                await updateDoc(orderDocRef, {
-                    status: 'completed'
-                });
-                console.log("Pesanan berhasil ditandai sebagai selesai:", orderId);
-            } catch (e) {
-                console.error("Gagal memperbarui pesanan:", e);
+                productGridEl.innerHTML = `<p class="col-span-2 text-center text-gray-500 p-4">${message}</p>`;
+                return;
             }
-        }
-        
-        async function deleteOrder(orderId) {
-            const orderDocRef = doc(db, `/artifacts/${appId}/public/data/orders/${orderId}`);
-            try {
-                await deleteDoc(orderDocRef);
-                console.log("Pesanan berhasil dihapus:", orderId);
-            } catch (e) {
-                console.error("Gagal menghapus pesanan:", e);
+
+            productGridEl.innerHTML = filteredProducts.map(p => `
+                <button data-product-id="${p.id}" class="add-product-btn p-3 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center text-center">
+                    <i class="ph-duotone ph-cup text-3xl text-indigo-500 mb-1"></i>
+                    <span class="text-sm font-semibold text-gray-800 line-clamp-2">${p.name}</span>
+                    <span class="text-xs text-green-600 mt-1 font-bold">${formatRupiah(p.price)}</span>
+                </button>
+            `).join(''); 
+        };
+
+        /** Mengupdate UI Keranjang dan Total */
+        const updateCartUI = () => {
+            if (!cartListEl || !grandTotalEl || !emptyMessageEl || !checkoutButtonEl) {
+                console.error("Kesalahan UI: Inisialisasi elemen kasir gagal.");
+                return;
             }
-        }
-        
-        // --- Recap Functions ---
-        async function listenForRecap() {
-            const recapList = document.getElementById('recap-list');
-            const ordersCollectionPath = `/artifacts/${appId}/public/data/orders`;
-            
-            const q = query(collection(db, ordersCollectionPath));
-            
-            onSnapshot(q, (snapshot) => {
-                const vendorRecap = {}; // Mengganti packageRecap menjadi vendorRecap
-                let totalRevenue = 0; 
 
-                if (snapshot.empty) {
-                    recapList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Belum ada pesanan.</p>`;
-                    return;
-                }
-                
-                // --- Helper function to extract Vendor Name (Lokal untuk Rekap) ---
-                const extractVendorName = (product) => {
-                    const vendorMatch = product.description.match(/Vendor: (.*)/);
-                    return vendorMatch ? vendorMatch[1].split(' (')[0] : 'Lainnya';
-                };
-                // --- End Helper Function ---
+            const total = calculateTotal();
 
-                snapshot.forEach(doc => {
-                    const order = doc.data();
-                    totalRevenue += order.total; 
-                    
-                    for (const productId in order.items) {
-                        const item = order.items[productId];
-                        const product = products.find(p => p.id === productId);
+            emptyMessageEl.classList.toggle('hidden', cart.length > 0);
 
-                        if (product) {
-                            // Ekstraksi Vendor Name (Logika ini tetap utuh untuk Rekapitulasi)
-                            const vendorName = extractVendorName(product);
-                            
-                            // Initialize vendor entry if it doesn't exist
-                            if (!vendorRecap[vendorName]) {
-                                vendorRecap[vendorName] = { 
-                                    items: {}, 
-                                    revenue: 0 
-                                };
-                            }
-
-                            // Calculate item count and total revenue per vendor
-                            const itemName = product.name;
-                            const itemPrice = product.price;
-
-                            vendorRecap[vendorName].revenue += itemPrice * item.quantity;
-                            
-                            if (!vendorRecap[vendorName].items[itemName]) {
-                                vendorRecap[vendorName].items[itemName] = {
-                                    totalQty: 0,
-                                    customerDetails: []
-                                };
-                            }
-
-                            vendorRecap[vendorName].items[itemName].totalQty += item.quantity;
-                            vendorRecap[vendorName].items[itemName].customerDetails.push({
-                                name: order.customerName,
-                                qty: item.quantity
-                            });
-                        }
-                    }
-                });
-
-                // Generate HTML for the recap view
-                let htmlContent = `
-                    <h3 class="text-xl font-bold mb-4 text-center">Rekapitulasi Item Terjual</h3>
-                    <div class="space-y-6">
-                        <!-- Total Revenue -->
-                        <div class="p-4 bg-green-100 dark:bg-green-900 rounded-lg">
-                            <h4 class="text-lg font-semibold mb-2">Total Uang Terkumpul</h4>
-                            <p class="font-bold text-2xl text-green-600">Rp ${totalRevenue.toLocaleString('id-ID')}</p>
-                        </div>
-                        
-                        <!-- Vendor Recap -->
-                        <h4 class="text-xl font-bold mb-3 mt-6 border-b pb-2 border-gray-300 dark:border-gray-600">Rekapitulasi per Vendor</h4>
-                        ${Object.keys(vendorRecap).length === 0 ? `<p class="text-gray-500">Belum ada paket yang dipesan.</p>` : `
-                            <div class="space-y-6">
-                            ${Object.entries(vendorRecap).map(([vendor, data]) => `
-                                <div class="p-4 bg-gray-100 dark:bg-neutral-700 rounded-lg shadow-md">
-                                    <h5 class="text-lg font-bold mb-3">${vendor}</h5>
-                                    <div class="text-sm mb-3">
-                                        <p class="font-semibold text-base text-blue-600 dark:text-blue-400">Total Penjualan: Rp ${data.revenue.toLocaleString('id-ID')}</p>
-                                    </div>
-                                    <h6 class="font-semibold text-md mt-4">Rincian Item:</h6>
-                                    <ul class="list-disc list-inside space-y-2 text-sm ml-4">
-                                        ${Object.entries(data.items).map(([itemName, itemData]) => `
-                                            <li>
-                                                <span class="font-bold">${itemName} x ${itemData.totalQty}</span>
-                                                <ul class="list-none text-xs text-gray-600 dark:text-gray-400 mt-1 space-y-0">
-                                                    ${itemData.customerDetails.map(customer => `
-                                                        <li>${customer.name} - ${itemName} x ${customer.qty}</li>
-                                                    `).join('')}
-                                                </ul>
-                                            </li>
-                                        `).join('')}
-                                    </ul>
-                                </div>
-                            `).join('')}
-                            </div>
-                        `}
+            cartListEl.innerHTML = cart.map(item => `
+                <div class="flex items-center justify-between p-2 bg-indigo-50">
+                    <div class="flex-1 min-w-0 mr-2">
+                        <span class="font-medium text-gray-800 block truncate">${item.product_name}</span> <!-- UBAH dari item.name -->
+                        <span class="text-xs text-gray-500">${formatRupiah(item.price)} x ${item.quantity}</span> <!-- UBAH dari item.qty -->
                     </div>
-                `;
+                    <div class="flex items-center space-x-1">
+                        <button data-id="${item.product_id}" data-change="-1" class="qty-change-btn p-1 text-sm bg-indigo-200 text-indigo-700 hover:bg-indigo-300 transition"> <!-- UBAH dari item.id -->
+                             <i class="ph ph-minus text-base"></i>
+                        </button>
+                        <span class="w-6 text-center text-sm font-semibold">${item.quantity}</span> <!-- UBAH dari item.qty -->
+                        <button data-id="${item.product_id}" data-change="1" class="qty-change-btn p-1 text-sm bg-indigo-500 text-white hover:bg-indigo-600 transition"> <!-- UBAH dari item.id -->
+                            <i class="ph ph-plus text-base"></i>
+                        </button>
+                    </div>
+                    <div class="ml-3 text-right">
+                        <span class="font-bold text-sm text-indigo-700">${formatRupiah(item.price * item.quantity)}</span> <!-- UBAH dari item.qty -->
+                    </div>
+                </div>
+            `).join('');
 
-                recapList.innerHTML = htmlContent;
-            });
-        }
-        
-        // --- User Order History Functions ---
-        function listenForUserOrdersCount() {
-            if (!userId) {
-                console.error("User ID tidak tersedia.");
-                return;
-            }
-            const ordersCollectionPath = `/artifacts/${appId}/public/data/orders`;
-            const q = query(collection(db, ordersCollectionPath), where("customerId", "==", userId));
+            grandTotalEl.textContent = formatRupiah(total);
+            updateCheckoutButtonState(); // Panggil fungsi cek status
+        };
 
-            onSnapshot(q, (snapshot) => {
-                const floatingBadge = document.getElementById('orders-badge');
-                
-                // FIX: Memeriksa keberadaan elemen sebelum manipulasi untuk mencegah TypeError
-                if (!floatingBadge) return; 
-
-                if (snapshot.empty) {
-                    floatingBadge.textContent = '0';
-                    floatingBadge.classList.add('hidden');
-                } else {
-                    floatingBadge.textContent = snapshot.size;
-                    floatingBadge.classList.remove('hidden');
-                }
-            });
-        }
-        
-        async function listenForUserOrders() {
-            const userOrdersList = document.getElementById('user-orders-list');
-            if (!userId) {
-                userOrdersList.innerHTML = `<p class="text-center text-red-500">Gagal memuat riwayat. Silakan muat ulang.</p>`;
+        /** Proses Checkout dan Menyimpan ke Supabase */
+        const handleCheckout = async () => {
+            const total = calculateTotal();
+            
+            if (total === 0 || !selectedPaymentMethod) {
+                console.warn('Keranjang kosong atau metode pembayaran belum dipilih.');
                 return;
             }
             
-            const ordersCollectionPath = `/artifacts/${appId}/public/data/orders`;
-            const q = query(collection(db, ordersCollectionPath), where("customerId", "==", userId));
+            // Nonaktifkan tombol saat proses berlangsung
+            checkoutButtonEl.disabled = true;
+            checkoutButtonEl.innerHTML = '<i class="ph-fill ph-circle-notch animate-spin text-xl mr-2"></i> Memproses...';
 
-            onSnapshot(q, (snapshot) => {
-                userOrdersList.innerHTML = '';
-                if (snapshot.empty) {
-                    userOrdersList.innerHTML = `<p class="text-center text-gray-500 dark:text-gray-400">Anda belum membuat pesanan.</p>`;
-                    return;
+
+            // 1. Dapatkan detail Pelanggan dari Supabase berdasarkan ID
+            // Asumsi: tabel 'users' memiliki kolom full_name, email, dan phone_number
+            const { data: customerDetails, error: customerError } = await supabaseClient
+                .from('users')
+                .select('full_name, email, phone_number') 
+                .eq('id', selectedCustomerId)
+                .single();
+
+            if (customerError || !customerDetails) {
+                const message = `Gagal mengambil detail pelanggan (ID: ${selectedCustomerId}). Pastikan ID valid di tabel 'users'.`;
+                console.error("Gagal mengambil detail pelanggan:", customerError || 'Data kosong');
+                
+                // Tampilkan pesan error ke pengguna
+                checkoutModalEl.classList.remove('hidden');
+                checkoutSuccessEl.classList.add('hidden');
+                checkoutFailEl.classList.remove('hidden');
+                modalErrorMessageEl.textContent = message;
+                
+                // Kembalikan tombol ke keadaan normal
+                checkoutButtonEl.disabled = false;
+                updateCheckoutButtonState(); 
+                return; 
+            }
+
+            // 2. Persiapkan data Order, MENGGUNAKAN DETAIL PELANGGAN LENGKAP
+            const orderData = {
+                // Customer Details diambil dari fetch
+                user_id: selectedCustomerId,
+                customer_name: customerDetails.full_name || selectedCustomerName, // Ambil nama dari data fetch, fallback ke nama tampilan
+                customer_email: customerDetails.email || 'N/A', 
+                customer_phone: customerDetails.phone_number || 'N/A', 
+                
+                // Order & Status Details
+                total_amount: total, // Kolom ini sudah ada dari sebelumnya (mungkin digunakan di tabel)
+                total: total,       // PERUBAHAN BARU: Menambahkan kolom 'total' sesuai permintaan (Numeric)
+                payment_method: selectedPaymentMethod,
+                payment_status: 'paid', 
+                
+                // PERUBAHAN KRITIS: Kirim array JavaScript 'cart' secara langsung
+                // Supabase akan menyimpannya sebagai JSONB yang sesuai dengan format yang diminta
+                items: cart, 
+            };
+            
+            console.log("Mencoba menyimpan Order dengan payload:", orderData);
+            
+            // 3. Kirim data Order ke tabel 'orders'
+            const { data: orderResponse, error: orderError } = await supabaseClient
+                .from('orders')
+                .insert([orderData])
+                .select(); 
+            
+            let success = true;
+            let errorMessage = '';
+
+            if (orderError) {
+                console.error("Gagal menyimpan Order:", orderError);
+                success = false;
+                errorMessage = `Gagal menyimpan transaksi: ${orderError.message}`;
+            } else {
+                console.log(`Order berhasil disimpan. ID Order: ${orderResponse[0].id}`);
+            }
+
+            // 4. Tampilkan Modal Hasil
+            if (success) {
+                // Tampilkan sukses
+                checkoutSuccessEl.classList.remove('hidden');
+                checkoutFailEl.classList.add('hidden');
+                
+                modalTotalEl.textContent = formatRupiah(total);
+                modalCustomerNameEl.textContent = customerDetails.full_name || selectedCustomerName; // Gunakan nama yang dikirim
+                modalPaymentMethodEl.textContent = selectedPaymentMethod; 
+
+            } else {
+                // Tampilkan gagal
+                checkoutSuccessEl.classList.add('hidden');
+                checkoutFailEl.classList.remove('hidden');
+                modalErrorMessageEl.textContent = errorMessage;
+            }
+            
+            // Kembalikan tombol ke keadaan normal sebelum modal ditutup
+            checkoutButtonEl.disabled = false;
+            updateCheckoutButtonState(); // Panggil untuk memperbarui teks tombol
+
+            checkoutModalEl.classList.remove('hidden');
+        };
+
+        /** Menutup Modal dan mereset keranjang jika sukses */
+        const closeModal = (reset) => {
+            if (!checkoutModalEl) return;
+
+            checkoutModalEl.classList.add('hidden');
+            if (reset) {
+                cart = [];
+                // Logika ID Transaksi telah dihapus
+                selectedPaymentMethod = null; // Reset metode pembayaran
+                
+                // Tambahkan setCustomer ke default saat reset
+                fetchDefaultCustomer(); 
+                
+                updateCartUI();
+            }
+        };
+
+        // --- Inisialisasi Aplikasi ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Inisialisasi semua elemen DOM (Cache references)
+            cartListEl = document.getElementById('cart-list');
+            grandTotalEl = document.getElementById('grand-total');
+            emptyMessageEl = document.getElementById('empty-cart-message');
+            checkoutButtonEl = document.getElementById('checkout-button');
+            // transactionIdEl telah dihapus
+            productGridEl = document.getElementById('product-grid');
+            checkoutModalEl = document.getElementById('checkout-modal');
+            modalTotalEl = document.getElementById('modal-total');
+            loadingMessageEl = document.getElementById('loading-message');
+            typeFilterEl = document.getElementById('type-filter'); 
+            
+            // Inisialisasi elemen Customer
+            customerNameEl = document.getElementById('customer-name');
+            registeredCustomerBtnEl = document.getElementById('registered-customer-btn');
+            generalCustomerBtnEl = document.getElementById('general-customer-btn');
+            customerModalEl = document.getElementById('customer-modal');
+            customerListEl = document.getElementById('customer-list');
+            modalCustomerNameEl = document.getElementById('modal-customer-name');
+            confirmCustomerBtnEl = document.getElementById('confirm-customer-btn');
+            
+            // Inisialisasi elemen Pembayaran
+            paymentMethodContainerEl = document.getElementById('payment-method-container');
+            modalPaymentMethodEl = document.getElementById('modal-payment-method');
+            
+            // Inisialisasi elemen Modal Hasil 
+            checkoutSuccessEl = document.getElementById('checkout-success');
+            checkoutFailEl = document.getElementById('checkout-fail');
+            modalErrorMessageEl = document.getElementById('modal-error-message');
+
+
+            const appContainer = document.getElementById('app'); 
+
+            if (!appContainer || !customerNameEl || !customerModalEl) {
+                console.error("Gagal memuat semua elemen DOM penting. Aplikasi tidak dapat berjalan.");
+                return;
+            }
+            
+            // 2. Event Listeners
+            
+            // Listener untuk Dropdown Tipe (CHANGE event)
+            typeFilterEl.addEventListener('change', (event) => {
+                selectType(event.target.value);
+            });
+
+            // Listener untuk tombol "Terdaftar"
+            registeredCustomerBtnEl.addEventListener('click', showCustomerModal);
+            
+            // Listener untuk tombol "Umum"
+            generalCustomerBtnEl.addEventListener('click', () => {
+                fetchDefaultCustomer(); 
+            });
+            
+            // Listener untuk tombol "Pilih" di modal
+            confirmCustomerBtnEl.addEventListener('click', confirmCustomerSelection);
+
+            // Event Delegation untuk tombol di dalam grid, keranjang, modal, dan pembayaran
+            appContainer.addEventListener('click', (event) => {
+                const target = event.target.closest('button');
+                if (!target) return;
+
+                const productId = target.getAttribute('data-product-id'); 
+                const itemId = target.getAttribute('data-id'); // Menggunakan data-id untuk product_id item keranjang
+                const change = parseInt(target.getAttribute('data-change'));
+                
+                const customerId = target.getAttribute('data-customer-id');
+                const customerName = target.getAttribute('data-customer-name');
+                
+                const paymentMethod = target.getAttribute('data-method'); 
+
+                // Menambah Produk dari Grid
+                if (target.classList.contains('add-product-btn') && productId) {
+                    console.log(`[DEBUG] Tombol Produk diklik, ID: ${productId}`); 
+                    addProductToCart(productId);
+                } 
+                
+                // Mengubah Kuantitas di Keranjang
+                else if (target.classList.contains('qty-change-btn') && itemId && !isNaN(change)) {
+                    changeItemQuantity(itemId, change);
+                } 
+                
+                // Memilih Pelanggan dari Modal (HANYA HIGHLIGHT)
+                else if (target.classList.contains('select-customer-btn') && customerId && customerName) {
+                    highlightCustomer(customerId, customerName);
                 }
                 
-                snapshot.forEach(doc => {
-                    const order = doc.data();
-                    const orderItem = document.createElement('div');
-                    orderItem.className = `p-4 rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-700 transition-colors duration-200 ${order.status === 'completed' ? 'bg-green-100 dark:bg-green-900' : 'bg-yellow-100 dark:bg-yellow-900'}`;
-                    
-                    const total = order.total.toLocaleString('id-ID');
-                    const orderDate = new Date(order.timestamp).toLocaleString('id-ID');
-                    
-                    let itemsHtml = '';
-                    for (const productId in order.items) {
-                        const item = order.items[productId];
-                        const product = products.find(p => p.id === productId);
-                        
-                        if (product) {
-                            const subtotal = product.price * item.quantity;
-                            itemsHtml += `
-                                <li class="flex justify-between">
-                                    <span>${product.name} x ${item.quantity}</span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">(Rp ${product.price.toLocaleString('id-ID')} / item)</span>
-                                    <span class="font-medium">Rp ${subtotal.toLocaleString('id-ID')}</span>
-                                </li>
-                            `;
-                        }
-                    }
-
-                    orderItem.innerHTML = `
-                        <p class="font-bold text-lg mb-2">Pesanan #${doc.id.substring(0, 8)}</p>
-                        <ul class="list-none space-y-1 mb-4 text-sm">${itemsHtml}</ul>
-                        <hr class="my-3 border-gray-300 dark:border-gray-700"/>
-                        <p class="font-bold text-lg mb-4 flex justify-between">
-                            <span>Total Pesanan:</span>
-                            <span>Rp ${total}</span>
-                        </p>
-                        <p class="font-semibold text-sm mb-2">Status: ${order.status === 'completed' ? '✅ Pembayaran Diterima' : '⏳ Menunggu Konfirmasi'}</p>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Tanggal: ${orderDate}</p>
-                    `;
-                    userOrdersList.appendChild(orderItem);
-                });
-            });
-        }
-        
-        // --- Admin Login Logic ---
-        loginSubmitButton.addEventListener('click', () => {
-            const id = adminIdInput.value.trim();
-            const code = adminCodeInput.value.trim();
-
-            if (id === ADMIN_ID && code === ADMIN_CODE) {
-                loginMessage.textContent = "Berhasil masuk!";
-                loginMessage.classList.add('text-green-500');
-                loginMessage.classList.remove('text-red-500');
+                // Memilih Metode Pembayaran
+                else if (target.classList.contains('payment-method-btn') && paymentMethod) {
+                    selectPaymentMethod(paymentMethod);
+                }
                 
-                setTimeout(() => {
-                    adminModal.classList.add('hidden');
-                    loginMessage.textContent = '';
-                    isAdminMode = true;
-                    activeAdminTab = 'orders'; // Reset to orders tab on login
-                    renderAdminView();
-                }, 1000); // Hide modal after 1 second
-            } else {
-                loginMessage.textContent = "ID atau Kode salah.";
-                loginMessage.classList.add('text-red-500');
-                loginMessage.classList.remove('text-green-500');
-            }
+                // Tombol Checkout
+                else if (target.id === 'checkout-button' && !target.disabled) {
+                    handleCheckout();
+                }
+            });
+
+            // 3. Inisialisasi Data
+            // Logika inisialisasi ID Transaksi telah dihapus untuk meringkas kode
+            
+            // 4. Muat Data Produk dan Pelanggan Default secara Asinkron
+            fetchProducts(); 
+            fetchDefaultCustomer(); // Memastikan customer default dimuat
         });
 
-        closeAdminModalButton.addEventListener('click', () => {
-            adminModal.classList.add('hidden');
-            adminIdInput.value = '';
-            adminCodeInput.value = '';
-            loginMessage.textContent = '';
-        });
-        
-        // Add this event listener to the `window.onload` or similar setup block
-        closeUserOrdersModalButton.addEventListener('click', () => {
-            userOrdersModal.classList.add('hidden');
-        });
-        
-        // New event listeners for the payment info modal
-        showPaymentInfoButton.addEventListener('click', () => {
-            userOrdersModal.classList.add('hidden');
-            paymentInfoModal.classList.remove('hidden');
-        });
-        
-        closePaymentInfoModalButton.addEventListener('click', () => {
-            paymentInfoModal.classList.add('hidden');
-            userOrdersModal.classList.remove('hidden');
-        });
-
-        // Initialize the app on load
-        window.onload = initializeFirebase;
     </script>
 </body>
 </html>
-

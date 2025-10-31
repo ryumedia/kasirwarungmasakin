@@ -619,8 +619,7 @@
                 <div class="flex items-center justify-between p-2 bg-indigo-50">
                     <div class="flex-1 min-w-0 mr-2">
                         <span class="font-medium text-gray-800 block truncate">${item.product_name}</span> 
-                        <!-- Tampilkan 'type' di keranjang untuk konsistensi filter UI -->
-                        <span class="text-xs text-gray-500">${formatRupiah(item.price)} x ${item.quantity} (Tipe: ${item.type})</span> 
+                        <span class="text-xs text-gray-500">${formatRupiah(item.price)} x ${item.quantity}</span> 
                     </div>
                     <div class="flex items-center space-x-1">
                         <button data-id="${item.product_id}" data-change="-1" class="qty-change-btn p-1 text-sm bg-indigo-200 text-indigo-700 hover:bg-indigo-300 transition"> 
@@ -868,3 +867,4 @@
     </script>
 </body>
 </html>
+

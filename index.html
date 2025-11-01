@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kasir Warung Masakin</title>
+    <title>Aplikasi Kasir Mobile</title>
     <!-- Memuat Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -68,7 +68,7 @@
         <!-- Header Aplikasi -->
         <header class="p-4 bg-indigo-600 text-white shadow-lg sticky top-0 z-10">
             <h1 class="text-xl font-bold flex items-center">
-                <i class="ph-fill ph-storefront text-2xl mr-2"></i> Kasir Warung Masakin
+                <i class="ph-fill ph-storefront text-2xl mr-2"></i> Aplikasi Kasir
             </h1>
             <!-- ID Transaksi telah dihapus dari sini -->
         </header>
@@ -404,6 +404,7 @@
                     <button data-customer-id="${user.id}" data-customer-name="${user.full_name}"
                             class="select-customer-btn w-full p-3 text-left border-b border-gray-100 hover:bg-indigo-50 transition ${user.id === selectedCustomerId ? 'bg-indigo-100 font-bold' : ''}">
                         <span class="font-medium text-gray-800 block truncate">${user.full_name}</span>
+                        <span class="text-xs text-gray-500 block truncate">${user.email || 'Tidak ada Email'}</span>
                     </button>
                 `).join('');
             }
@@ -455,7 +456,8 @@
                 // PERBAIKAN: Ambil kolom 'category' (untuk persistence) DAN 'type' (untuk filtering UI)
                 const { data, error } = await supabaseClient 
                     .from('products') 
-                    .select('id, name, price, category, type'); // Mengambil kedua kolom
+                    .select('id, name, price, category, type, stock') // Mengambil kedua kolom
+                    .eq('status', 'active'); // HANYA ambil produk yang statusnya 'active'
 
                 if (loadingMessageEl) loadingMessageEl.classList.add('hidden');
 
@@ -472,7 +474,10 @@
                     // Nilai untuk dikirim ke orders.items
                     category: p.category || 'Lainnya', 
                     // Nilai untuk filtering di UI
-                    type: p.type || 'Lainnya' 
+                    type: p.type || 'Lainnya',
+                    // BARU: Simpan status, meskipun sudah difilter 'active'
+                    status: p.status,
+                    stock: p.stock || 0
                 }));
                 
                 console.log(`[DEBUG] Produk berhasil dimuat: ${products.length} item.`); 
@@ -537,7 +542,8 @@
                     product_name: product.name, 
                     price: product.price,
                     // PENTING: Untuk persistence (orders.items) menggunakan kolom 'category'
-                    category: product.category, 
+                    category: product.category,
+                    type: product.type, 
                     quantity: 1 
                 });
             }
@@ -587,18 +593,40 @@
             }
 
             productGridEl.innerHTML = filteredProducts.map(p => {
+                // LOGIKA BARU: Cek apakah stok habis (stock <= 0)
+                const isOutOfStock = (p.stock || 0) <= 0; 
+
                 // LOGIKA BARU UNTUK PERSISTENT HIGHLIGHT
                 const isInCart = cart.some(item => String(item.product_id) === String(p.id)); 
-                
-                const cardClasses = isInCart 
-                    ? 'bg-indigo-100 ring-2 ring-indigo-500 shadow-md' // Kelas highlight biru
-                    : 'bg-white border border-gray-200 shadow-sm hover:shadow-md'; // Kelas default
+
+                let cardClasses = 'transition-all duration-200 flex flex-col items-center justify-center text-center relative';
+
+                if (isOutOfStock) {
+                    // Jika Habis, gunakan kelas non-interaktif
+                    cardClasses += ' bg-gray-200 text-gray-500 opacity-70 cursor-not-allowed';
+                } else if (isInCart) {
+                    // Jika ada di keranjang
+                    cardClasses += ' bg-indigo-100 ring-2 ring-indigo-500 shadow-md hover:shadow-lg';
+                } else {
+                    // Default
+                    cardClasses += ' bg-white border border-gray-200 shadow-sm hover:shadow-md';
+                }
+
+                // Tentukan apakah tombol harus dinonaktifkan
+                const disabledAttribute = isOutOfStock ? 'disabled' : '';
                 
                 return `
-                    <button data-product-id="${p.id}" class="add-product-btn p-3 ${cardClasses} transition-all duration-200 flex flex-col items-center justify-center text-center">
-                        <i class="ph-duotone ph-cup text-3xl text-indigo-500 mb-1"></i>
-                        <span class="text-sm font-semibold text-gray-800 line-clamp-2">${p.name}</span>
-                        <span class="text-xs text-green-600 mt-1 font-bold">${formatRupiah(p.price)}</span>
+                    <button data-product-id="${p.id}" ${disabledAttribute} class="add-product-btn p-3 ${cardClasses} w-full">
+                        ${isOutOfStock ? `
+                            <!-- Label "Habis" yang menindih card -->
+                            <div class="absolute inset-0 bg-red-500 bg-opacity-50 text-white flex items-center justify-center text-xl font-bold z-10">
+                                HABIS
+                            </div>
+                        ` : ''}
+
+                        <i class="ph-duotone ph-cup text-3xl text-indigo-500 mb-1 ${isOutOfStock ? 'opacity-30' : ''}"></i>
+                        <span class="text-sm font-semibold line-clamp-2 ${isOutOfStock ? 'text-gray-500' : 'text-gray-800'}">${p.name}</span>
+                        <span class="text-xs text-green-600 mt-1 font-bold ${isOutOfStock ? 'text-gray-400' : ''}">${formatRupiah(p.price)}</span>
                     </button>
                 `;
             }).join(''); 
@@ -619,7 +647,8 @@
                 <div class="flex items-center justify-between p-2 bg-indigo-50">
                     <div class="flex-1 min-w-0 mr-2">
                         <span class="font-medium text-gray-800 block truncate">${item.product_name}</span> 
-                        <span class="text-xs text-gray-500">${formatRupiah(item.price)} x ${item.quantity}</span> 
+                        <!-- Tampilkan 'type' di keranjang untuk konsistensi filter UI -->
+                        <span class="text-xs text-gray-500">${formatRupiah(item.price)} x ${item.quantity} (Tipe: ${item.type})</span> 
                     </div>
                     <div class="flex items-center space-x-1">
                         <button data-id="${item.product_id}" data-change="-1" class="qty-change-btn p-1 text-sm bg-indigo-200 text-indigo-700 hover:bg-indigo-300 transition"> 
@@ -682,6 +711,12 @@
 
             // 2. Persiapkan data Order, MENGGUNAKAN DETAIL PELANGGAN LENGKAP
             // >>>>>>>>>>> LOKASI KERANJANG DISIAPKAN UNTUK DIKIRIM (Baris 715) <<<<<<<<<<<<
+            const itemsForSupabase = cart.map(item => {
+                // Menggunakan object destructuring untuk mengeluarkan properti 'type'
+                const { type, ...restOfItem } = item;
+                return restOfItem;
+            });
+
             const orderData = {
                 // Customer Details diambil dari fetch
                 user_id: selectedCustomerId,
@@ -695,9 +730,9 @@
                 payment_method: selectedPaymentMethod,
                 payment_status: 'paid', 
                 
-                // PENTING: array 'cart' (data keranjang) dikirim ke Supabase
+                // PENTING: Kirim data yang sudah dihilangkan 'type'-nya ke Supabase
                 // Pastikan kolom 'items' di tabel 'orders' bertipe JSONB/ARRAY
-                items: cart, 
+                items: itemsForSupabase,
             };
             // >>>>>>>>>>> AKHIR LOKASI KERANJANG DISIAPKAN (Baris 728) <<<<<<<<<<<<
             
@@ -867,4 +902,3 @@
     </script>
 </body>
 </html>
-
